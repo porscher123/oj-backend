@@ -5,7 +5,7 @@ spring:
 
         # Druid的其他属性配置 springboot3整合情况下,数据库连接信息必须在Druid属性下!
         druid:
-            url: jdbc:mysql://localhost:3306/atguigudb
+            url: jdbc:mysql://localhost:3306/db_oj
             username: root
             password: wxc123...
             driver-class-name: com.mysql.cj.jdbc.Driver
@@ -39,3 +39,20 @@ spring:
 #logging:
 #    level:
 #        root: debug
+
+
+
+
+mybatis-plus:
+    configuration:
+        # 配置MyBatis日志
+        log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    global-config:
+        db-config:
+            logic-delete-field: isDelete # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+            logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+            logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+            # 配置MyBatis-Plus操作表的默认前缀
+#            table-prefix: t_
+            # 配置MyBatis-Plus的主键策略
+            id-type: auto

@@ -1,6 +1,6 @@
 package com.wxc.oj.service;
 
-import com.wxc.oj.pojo.Submission;
+import com.wxc.oj.model.pojo.Submission;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
