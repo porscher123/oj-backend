@@ -63,12 +63,12 @@ public class ProblemController {
         if (tags != null) {
             Problem.setTags(JSONUtil.toJsonStr(tags));
         }
-        ProblemService.validProblem(Problem, true);
+        problemService.validProblem(Problem, true);
         User loginUser = userService.getLoginUser(request);
         Problem.setUserId(loginUser.getId());
         Problem.setFavorNum(0);
         Problem.setThumbNum(0);
-        boolean result = ProblemService.save(Problem);
+        boolean result = problemService.save(Problem);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newProblemId = Problem.getId();
         return ResultUtils.success(newProblemId);
@@ -89,13 +89,13 @@ public class ProblemController {
         User user = userService.getLoginUser(request);
         long id = deleteRequest.getId();
         // 判断是否存在
-        Problem oldProblem = ProblemService.getById(id);
+        Problem oldProblem = problemService.getById(id);
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
         if (!oldProblem.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-        boolean b = ProblemService.removeById(id);
+        boolean b = problemService.removeById(id);
         return ResultUtils.success(b);
     }
 
@@ -118,12 +118,12 @@ public class ProblemController {
             Problem.setTags(JSONUtil.toJsonStr(tags));
         }
         // 参数校验
-        ProblemService.validProblem(Problem, false);
+        problemService.validProblem(Problem, false);
         long id = ProblemUpdateRequest.getId();
         // 判断是否存在
-        Problem oldProblem = ProblemService.getById(id);
+        Problem oldProblem = problemService.getById(id);
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
-        boolean result = ProblemService.updateById(Problem);
+        boolean result = problemService.updateById(Problem);
         return ResultUtils.success(result);
     }
 
@@ -138,46 +138,43 @@ public class ProblemController {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Problem Problem = ProblemService.getById(id);
+        Problem Problem = problemService.getById(id);
         if (Problem == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        return ResultUtils.success(ProblemService.getProblemVO(Problem, request));
+        return ResultUtils.success(problemService.getProblemVO(Problem, request));
     }
 
     /**
      * 分页获取列表（仅管理员）
-     *
-     * @param ProblemQueryRequest
+     * @param
      * @return
      */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest ProblemQueryRequest) {
-        long current = ProblemQueryRequest.getCurrent();
-        long size = ProblemQueryRequest.getPageSize();
-        Page<Problem> ProblemPage = ProblemService.page(new Page<>(current, size),
-                ProblemService.getQueryWrapper(ProblemQueryRequest));
+    public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
+        long current = problemQueryRequest.getCurrent();
+        long size = problemQueryRequest.getPageSize();
+        Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
+                problemService.getQueryWrapper(problemQueryRequest));
         return ResultUtils.success(ProblemPage);
     }
 
     /**
      * 分页获取列表（封装类）
-     *
-     * @param ProblemQueryRequest
      * @param request
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<ProblemVO>> listProblemVOByPage(@RequestBody ProblemQueryRequest ProblemQueryRequest,
+    public BaseResponse<Page<ProblemVO>> listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
             HttpServletRequest request) {
-        long current = ProblemQueryRequest.getCurrent();
-        long size = ProblemQueryRequest.getPageSize();
+        long current = problemQueryRequest.getCurrent();
+        long size = problemQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Problem> ProblemPage = ProblemService.page(new Page<>(current, size),
-                ProblemService.getQueryWrapper(ProblemQueryRequest));
-        return ResultUtils.success(ProblemService.getProblemVOPage(ProblemPage, request));
+        Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
+                problemService.getQueryWrapper(problemQueryRequest));
+        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage, request));
     }
 
     /**
@@ -187,20 +184,20 @@ public class ProblemController {
      * @return
      */
     @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<ProblemVO>> listMyProblemVOByPage(@RequestBody ProblemQueryRequest ProblemQueryRequest,
+    public BaseResponse<Page<ProblemVO>> listMyProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
             HttpServletRequest request) {
-        if (ProblemQueryRequest == null) {
+        if (problemQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
-        ProblemQueryRequest.setUserId(loginUser.getId());
-        long current = ProblemQueryRequest.getCurrent();
-        long size = ProblemQueryRequest.getPageSize();
+        problemQueryRequest.setUserId(loginUser.getId());
+        long current = problemQueryRequest.getCurrent();
+        long size = problemQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Problem> ProblemPage = ProblemService.page(new Page<>(current, size),
-                ProblemService.getQueryWrapper(ProblemQueryRequest));
-        return ResultUtils.success(ProblemService.getProblemVOPage(ProblemPage, request));
+        Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
+                problemService.getQueryWrapper(problemQueryRequest));
+        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage, request));
     }
 
 
@@ -208,33 +205,33 @@ public class ProblemController {
     /**
      * 编辑（用户）
      *
-     * @param ProblemEditRequest
+     * @param
      * @param request
      * @return
      */
     @PostMapping("/edit")
-    public BaseResponse<Boolean> editProblem(@RequestBody ProblemEditRequest ProblemEditRequest, HttpServletRequest request) {
-        if (ProblemEditRequest == null || ProblemEditRequest.getId() <= 0) {
+    public BaseResponse<Boolean> editProblem(@RequestBody ProblemEditRequest problemEditRequest, HttpServletRequest request) {
+        if (problemEditRequest == null || problemEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         Problem Problem = new Problem();
-        BeanUtils.copyProperties(ProblemEditRequest, Problem);
-        List<String> tags = ProblemEditRequest.getTags();
+        BeanUtils.copyProperties(problemEditRequest, Problem);
+        List<String> tags = problemEditRequest.getTags();
         if (tags != null) {
             Problem.setTags(JSONUtil.toJsonStr(tags));
         }
         // 参数校验
-        ProblemService.validProblem(Problem, false);
+        problemService.validProblem(Problem, false);
         User loginUser = userService.getLoginUser(request);
-        long id = ProblemEditRequest.getId();
+        long id = problemEditRequest.getId();
         // 判断是否存在
-        Problem oldProblem = ProblemService.getById(id);
+        Problem oldProblem = problemService.getById(id);
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
         if (!oldProblem.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-        boolean result = ProblemService.updateById(Problem);
+        boolean result = problemService.updateById(Problem);
         return ResultUtils.success(result);
     }
 

@@ -21,9 +21,8 @@ public class ProblemQueryRequest extends PageRequest implements Serializable {
     private String title;
 
     private List<String> tags;
-
+    private Long userId;
     private String level;
-
 
 
     private static final long serialVersionUID = 1L;
