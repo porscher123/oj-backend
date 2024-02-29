@@ -19,13 +19,14 @@ import com.wxc.oj.model.pojo.User;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
-import java.util.List;
-
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+import static org.springframework.beans.BeanUtils.copyProperties;
 
 /**
  * 帖子接口
@@ -33,7 +34,7 @@ import org.springframework.web.bind.annotation.*;
 
  */
 @RestController
-@RequestMapping("/problem")
+@RequestMapping("problem")
 @Slf4j
 public class ProblemController {
 
@@ -48,29 +49,30 @@ public class ProblemController {
     /**
      * 创建
      *
-     * @param ProblemAddRequest
+     * @param
      * @param request
      * @return
      */
     @PostMapping("add")
-    public BaseResponse<Long> addProblem(@RequestBody ProblemAddRequest ProblemAddRequest, HttpServletRequest request) {
-        if (ProblemAddRequest == null) {
+    public BaseResponse<Long> addProblem(@RequestBody ProblemAddRequest problemAddRequest, HttpServletRequest request) {
+        if (problemAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Problem Problem = new Problem();
-        BeanUtils.copyProperties(ProblemAddRequest, Problem);
-        List<String> tags = ProblemAddRequest.getTags();
+        Problem problem = new Problem();
+        copyProperties(problemAddRequest, problem);
+        List<String> tags = problemAddRequest.getTags();
         if (tags != null) {
-            Problem.setTags(JSONUtil.toJsonStr(tags));
+            problem.setTags(JSONUtil.toJsonStr(tags));
         }
-        problemService.validProblem(Problem, true);
+        problemService.validProblem(problem, true);
+        // 获取当前用户
         User loginUser = userService.getLoginUser(request);
-        Problem.setUserId(loginUser.getId());
-        Problem.setFavorNum(0);
-        Problem.setThumbNum(0);
-        boolean result = problemService.save(Problem);
+        problem.setUserId(loginUser.getId());
+        problem.setFavorNum(0);
+        problem.setThumbNum(0);
+        boolean result = problemService.save(problem);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        long newProblemId = Problem.getId();
+        long newProblemId = problem.getId();
         return ResultUtils.success(newProblemId);
     }
 
@@ -87,7 +89,7 @@ public class ProblemController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = userService.getLoginUser(request);
-        long id = deleteRequest.getId();
+        Long id = deleteRequest.getId();
         // 判断是否存在
         Problem oldProblem = problemService.getById(id);
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
@@ -102,28 +104,28 @@ public class ProblemController {
     /**
      * 更新（仅管理员）
      *
-     * @param ProblemUpdateRequest
+     * @param
      * @return
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateProblem(@RequestBody ProblemUpdateRequest ProblemUpdateRequest) {
-        if (ProblemUpdateRequest == null || ProblemUpdateRequest.getId() <= 0) {
+    public BaseResponse<Boolean> updateProblem(@RequestBody ProblemUpdateRequest problemUpdateRequest) {
+        if (problemUpdateRequest == null || problemUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Problem Problem = new Problem();
-        BeanUtils.copyProperties(ProblemUpdateRequest, Problem);
-        List<String> tags = ProblemUpdateRequest.getTags();
+        Problem problem = new Problem();
+        copyProperties(problemUpdateRequest, problem);
+        List<String> tags = problemUpdateRequest.getTags();
         if (tags != null) {
-            Problem.setTags(JSONUtil.toJsonStr(tags));
+            problem.setTags(JSONUtil.toJsonStr(tags));
         }
         // 参数校验
-        problemService.validProblem(Problem, false);
-        long id = ProblemUpdateRequest.getId();
+        problemService.validProblem(problem, false);
+        Long id = problemUpdateRequest.getId();
         // 判断是否存在
         Problem oldProblem = problemService.getById(id);
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
-        boolean result = problemService.updateById(Problem);
+        boolean result = problemService.updateById(problem);
         return ResultUtils.success(result);
     }
 
@@ -134,7 +136,7 @@ public class ProblemController {
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<ProblemVO> getProblemVOById(long id, HttpServletRequest request) {
+    public BaseResponse<ProblemVO> getProblemVOById(Long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -179,7 +181,7 @@ public class ProblemController {
 
     /**
      * 分页获取当前用户创建的资源列表
-     * @param ProblemQueryRequest
+     * @param
      * @param request
      * @return
      */
@@ -215,7 +217,7 @@ public class ProblemController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         Problem Problem = new Problem();
-        BeanUtils.copyProperties(problemEditRequest, Problem);
+        copyProperties(problemEditRequest, Problem);
         List<String> tags = problemEditRequest.getTags();
         if (tags != null) {
             Problem.setTags(JSONUtil.toJsonStr(tags));
@@ -223,7 +225,7 @@ public class ProblemController {
         // 参数校验
         problemService.validProblem(Problem, false);
         User loginUser = userService.getLoginUser(request);
-        long id = problemEditRequest.getId();
+        Long id = problemEditRequest.getId();
         // 判断是否存在
         Problem oldProblem = problemService.getById(id);
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);

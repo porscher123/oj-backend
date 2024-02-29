@@ -22,7 +22,6 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -37,7 +36,7 @@ import java.util.stream.Collectors;
 * @createDate 2024-02-28 14:24:47
 */
 @Service
-public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> implements ProblemService {@Autowired
+public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> implements ProblemService {
 
     @Resource
     private UserService userService;
