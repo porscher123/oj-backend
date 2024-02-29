@@ -1,7 +1,9 @@
 package com.wxc.oj.service;
 
+import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.pojo.Submission;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.wxc.oj.model.pojo.User;
 
 /**
 * @author 王新超
@@ -10,4 +12,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface SubmissionService extends IService<Submission> {
 
+
+
+    public Long submitCode(SubmissionAddRequest submissionAddRequest, User loginUser);
 }

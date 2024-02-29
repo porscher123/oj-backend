@@ -1,4 +1,4 @@
-package com.wxc.oj.model.enums;
+package com.wxc.oj.enums;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,19 +6,20 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 
 /**
- * 用户角色枚举
+ * 文件上传业务类型枚举
+ *
+ * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
+ * @from <a href="https://yupi.icu">编程导航知识星球</a>
  */
-public enum UserRoleEnum {
+public enum FileUploadBizEnum {
 
-    USER("用户", "user"),
-    ADMIN("管理员", "admin"),
-    BAN("被封号", "ban");
+    USER_AVATAR("用户头像", "user_avatar");
 
     private final String text;
 
     private final String value;
 
-    UserRoleEnum(String text, String value) {
+    FileUploadBizEnum(String text, String value) {
         this.text = text;
         this.value = value;
     }
@@ -38,11 +39,11 @@ public enum UserRoleEnum {
      * @param value
      * @return
      */
-    public static UserRoleEnum getEnumByValue(String value) {
+    public static FileUploadBizEnum getEnumByValue(String value) {
         if (ObjectUtils.isEmpty(value)) {
             return null;
         }
-        for (UserRoleEnum anEnum : UserRoleEnum.values()) {
+        for (FileUploadBizEnum anEnum : FileUploadBizEnum.values()) {
             if (anEnum.value.equals(value)) {
                 return anEnum;
             }

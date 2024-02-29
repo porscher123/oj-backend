@@ -1,49 +1,47 @@
-package com.wxc.oj.model.enums;
+package com.wxc.oj.enums;
+
+import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.ObjectUtils;
 
 /**
- * 文件上传业务类型枚举
- *
- * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
- * @from <a href="https://yupi.icu">编程导航知识星球</a>
+ * 数据库中提交状态设置的是整形
+ * 所以枚举也要保存为整形
  */
-public enum FileUploadBizEnum {
-
-    USER_AVATAR("用户头像", "user_avatar");
+public enum SubmissionStatusEnum {
+    WAITING("waiting", 0),
+    RUNNING("running", 1),
+    SUCCEED("succeed", 2),
+    FAILED("error", 3);
 
     private final String text;
 
-    private final String value;
+    private final Integer value;
 
-    FileUploadBizEnum(String text, String value) {
+    SubmissionStatusEnum(String text, Integer value) {
         this.text = text;
         this.value = value;
     }
 
     /**
      * 获取值列表
-     *
      * @return
      */
-    public static List<String> getValues() {
+    public static List<Integer> getValues() {
         return Arrays.stream(values()).map(item -> item.value).collect(Collectors.toList());
     }
-
     /**
-     * 根据 value 获取枚举
-     *
+     * 通过value获取枚举值
      * @param value
      * @return
      */
-    public static FileUploadBizEnum getEnumByValue(String value) {
+    public static SubmissionStatusEnum getEnumByValue(Integer value) {
         if (ObjectUtils.isEmpty(value)) {
             return null;
         }
-        for (FileUploadBizEnum anEnum : FileUploadBizEnum.values()) {
+        for (var anEnum : SubmissionStatusEnum.values()) {
             if (anEnum.value.equals(value)) {
                 return anEnum;
             }
@@ -51,7 +49,7 @@ public enum FileUploadBizEnum {
         return null;
     }
 
-    public String getValue() {
+    public Integer getValue() {
         return value;
     }
 

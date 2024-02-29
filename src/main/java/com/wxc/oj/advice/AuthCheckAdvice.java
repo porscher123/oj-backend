@@ -4,7 +4,7 @@ import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.pojo.User;
-import com.wxc.oj.model.enums.UserRoleEnum;
+import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;

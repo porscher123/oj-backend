@@ -9,7 +9,7 @@ import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.UserMapper;
 import com.wxc.oj.model.dto.user.UserQueryRequest;
-import com.wxc.oj.model.enums.UserRoleEnum;
+import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.model.pojo.User;
 import com.wxc.oj.model.vo.LoginUserVO;
 import com.wxc.oj.model.vo.UserVO;
@@ -42,7 +42,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     public static final String SALT = "wxc";
 
-
+    /**
+     *
+     * @param userAccount   用户账户
+     * @param userPassword  用户密码
+     * @param checkPassword 校验密码
+     * @return
+     */
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
@@ -80,7 +86,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
-
+    /**
+     *
+     * @param userAccount  用户账户
+     * @param userPassword 用户密码
+     * @param request
+     * @return
+     */
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
@@ -111,8 +123,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
 
     /**
-     * 获取当前登录用户
-     *
+     * 通过http请求获取当前登录用户
      * @param request
      * @return
      */
