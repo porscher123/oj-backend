@@ -43,7 +43,7 @@ public class SubmissionController {
         }
 
         // 获取当前用户
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request.getHeader("token"));
         // 执行插入submission操作
         Long newId = submissionService.submitCode(submission, loginUser);
 

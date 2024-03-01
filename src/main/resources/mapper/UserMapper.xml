@@ -24,4 +24,5 @@
         user_profile,user_role,create_time,
         update_time,is_delete
     </sql>
+
 </mapper>

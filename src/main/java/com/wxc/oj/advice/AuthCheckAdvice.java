@@ -5,6 +5,7 @@ import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.pojo.User;
 import com.wxc.oj.enums.UserRoleEnum;
+import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
@@ -43,7 +44,7 @@ public class AuthCheckAdvice {
         // 获取当前请求
         HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
         // 当前登录用户
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request.getHeader("token"));
         // 必须有该权限才通过
         if (StringUtils.isNotBlank(mustRole)) {
             UserRoleEnum mustUserRoleEnum = UserRoleEnum.getEnumByValue(mustRole);

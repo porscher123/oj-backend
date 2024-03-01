@@ -1,4 +1,8 @@
 spring:
+    mvc:
+        pathmatch:
+            # 配置策略
+            matching-strategy: ant-path-matcher
     datasource:
         # 连接池类型
         type: com.alibaba.druid.pool.DruidDataSource
@@ -42,7 +46,6 @@ spring:
 
 
 
-
 mybatis-plus:
     configuration:
         # 配置MyBatis日志
@@ -55,4 +58,16 @@ mybatis-plus:
             # 配置MyBatis-Plus操作表的默认前缀
 #            table-prefix: t_
             # 配置MyBatis-Plus的主键策略
-            id-type: auto
+            id-type: assign_id
+
+
+# 自定义token的配置属性
+jwt:
+    token:
+        tokenExpiration: 86400000 # 有效时间
+        tokenSignKey: headline123456 # 签名密钥
+server:
+    reactive:
+        session:
+            timeout:
+    port: 8080

@@ -1,5 +1,7 @@
 package com.wxc.oj.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
@@ -14,6 +16,7 @@ import com.wxc.oj.model.pojo.User;
 import com.wxc.oj.model.vo.LoginUserVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
+import com.wxc.oj.utils.JwtHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +25,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.wxc.oj.service.impl.UserServiceImpl.SALT;
 
@@ -33,16 +39,16 @@ public class UserController {
 
     @Autowired
     private UserService userService;
-
+    @Autowired
+    private JwtHelper jwtHelper;
 
     /**
      * 用户注册
-     *
      * @param userRegisterRequest
-     * @return
+     * @return 返回注册成功的user的VO对象
      */
     @PostMapping("register")
-    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+    public BaseResponse userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -52,19 +58,21 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             return null;
         }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
-        return ResultUtils.success(result);
+        UserVO userVO = userService.userRegister(userAccount, userPassword, checkPassword);
+        Map data = new HashMap();
+        data.put("user", userVO);
+        return ResultUtils.success(data);
     }
 
     /**
      * 用户登录
      *
      * @param userLoginRequest
-     * @param request
+     * @param
      * @return
      */
     @PostMapping("login")
-    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+    public BaseResponse userLogin(@RequestBody UserLoginRequest userLoginRequest) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -73,46 +81,43 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
-        return ResultUtils.success(loginUserVO);
+        UserVO userVO = userService.userLogin(userAccount, userPassword);
+        Map data = new HashMap();
+        data.put("loginUser", userVO);
+        data.put("token", jwtHelper.createToken(userVO.getId()));
+        return ResultUtils.success(data);
     }
 
 
 
-    /**
-     * 用户注销
-     *
-     * @param request
-     * @return
-     */
-    @PostMapping("logout")
-    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
-        if (request == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        boolean result = userService.userLogout(request);
-        return ResultUtils.success(result);
-    }
+//    /**
+//     * 用户注销
+//     * @param request
+//     * @return
+//     */
+//    @PostMapping("logout")
+//    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+//        if (request == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        boolean result = userService.userLogout(request);
+//        return ResultUtils.success(result);
+//    }
+
+//    /**
+//     * 通过token获取当前登录用户
+//     * @param token
+//     * @return
+//     */
+//    @GetMapping("/get/login")
+//    public BaseResponse<LoginUserVO> getLoginUser(@RequestHeader String token) {
+//        User user = userService.getLoginUser(token);
+//        return ResultUtils.success(userService.getLoginUserVO(user));
+//    }
+
 
     /**
-     * 获取当前登录用户
-     *
-     * @param request
-     * @return
-     */
-    @GetMapping("/get/login")
-    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
-        User user = userService.getLoginUser(request);
-        return ResultUtils.success(userService.getLoginUserVO(user));
-    }
-
-    // endregion
-
-    // region 增删改查
-
-    /**
-     * 创建用户
-     *
+     * 创建用户(管理员)
      * @param userAddRequest
      * @param request
      * @return
@@ -125,9 +130,9 @@ public class UserController {
         }
         User user = new User();
         BeanUtils.copyProperties(userAddRequest, user);
-        // 默认密码 12345678
-        String defaultPassword = "12345678";
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + defaultPassword).getBytes());
+        // 对初始密码加密
+        String initPassword = user.getUserPassword();
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + initPassword).getBytes());
         user.setUserPassword(encryptPassword);
         boolean result = userService.save(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -136,32 +141,33 @@ public class UserController {
 
     /**
      * 删除用户
-     *
      * @param deleteRequest
      * @param request
      * @return
      */
     @PostMapping("delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+    public BaseResponse deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean b = userService.removeById(deleteRequest.getId());
-        return ResultUtils.success(b);
+        Long id = deleteRequest.getId();
+        boolean b = userService.removeById(id);
+        Map data = new HashMap();
+        data.put("deleted", b);
+        data.put("user", userService.getById(id));
+        return ResultUtils.success(data);
     }
 
     /**
      * 更新用户
-     *
      * @param userUpdateRequest
-     * @param request
+     * @param
      * @return
      */
-    @PostMapping("/update")
+    @PostMapping("update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest,
-                                            HttpServletRequest request) {
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -174,7 +180,6 @@ public class UserController {
 
     /**
      * 根据 id 获取用户（仅管理员）
-     *
      * @param id
      * @param request
      * @return
@@ -192,16 +197,22 @@ public class UserController {
 
     /**
      * 根据 id 获取包装类
-     *
-     * @param id
+     * 用户可能会根据账户进行查询其它用户
+     * @param
      * @param request
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<UserVO> getUserVOById(long id, HttpServletRequest request) {
-        BaseResponse<User> response = getUserById(id, request);
-        User user = response.getData();
-        return ResultUtils.success(userService.getUserVO(user));
+    public BaseResponse queryUserVOByAccount(String userAccount, HttpServletRequest request) {
+//        BaseResponse<User> response = getUserById(id, request);
+//        User user = response.getData();
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(StringUtils.isNotBlank(userAccount), User::getUserAccount, userAccount);
+        List<User> userList = userService.list(queryWrapper);
+        Map data = new HashMap();
+        List<UserVO> userVOList = userService.getUserVO(userList);
+        data.put("possibleUsers", userVOList);
+        return ResultUtils.success(data);
     }
 
     /**
@@ -262,7 +273,7 @@ public class UserController {
         if (userUpdateMyRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request.getHeader("token"));
         User user = new User();
         BeanUtils.copyProperties(userUpdateMyRequest, user);
         user.setId(loginUser.getId());

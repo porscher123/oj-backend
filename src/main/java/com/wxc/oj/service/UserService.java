@@ -1,6 +1,7 @@
 package com.wxc.oj.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.model.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -25,34 +26,31 @@ public interface UserService extends IService<User> {
      * @param checkPassword 校验密码
      * @return 新用户 id
      */
-    long userRegister(String userAccount, String userPassword, String checkPassword);
+    UserVO userRegister(String userAccount, String userPassword, String checkPassword);
 
     /**
      * 用户登录
      *
      * @param userAccount  用户账户
      * @param userPassword 用户密码
-     * @param request
      * @return 脱敏后的用户信息
      */
-    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
+    UserVO userLogin(String userAccount, String userPassword);
 
 
     /**
-     * 获取当前登录用户
-     *
-     * @param request
+     * 通过token获取当前登录用户
      * @return
      */
-    User getLoginUser(HttpServletRequest request);
+    User getLoginUser(String token);
 
-    /**
-     * 获取当前登录用户（允许未登录）
-     *
-     * @param request
-     * @return
-     */
-    User getLoginUserPermitNull(HttpServletRequest request);
+//    /**
+//     * 获取当前登录用户（允许未登录）
+//     *
+//     * @param request
+//     * @return
+//     */
+//    UserVO getLoginUserPermitNull(HttpServletRequest request);
 
     /**
      * 是否为管理员

@@ -64,16 +64,16 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         String title = problem.getTitle();
         String content = problem.getContent();
         String tags = problem.getTags();
-        String level = problem.getLevel();
+//        String level = problem.getLevel();
         String solution = problem.getSolution();
         String judgeCase = problem.getJudgeCase();
         String judgeConfig = problem.getJudgeConfig();
 
         // 校验题目难度是否合法
 
-        if (!checkLevel(level)) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR);
-        }
+//        if (!checkLevel(level)) {
+//            throw new BusinessException(ErrorCode.OPERATION_ERROR);
+//        }
 
     }
 
