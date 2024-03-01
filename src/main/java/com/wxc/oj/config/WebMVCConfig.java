@@ -16,12 +16,18 @@ public class WebMVCConfig implements WebMvcConfigurer {
     private LoginProtectInterceptor loginProtectInterceptor;
 
 
+    /**
+     * 除了用户登陆和注册
+     * 其余功能都要校验先token
+     * @param registry
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // 添加拦截器, 并配置拦截路径
         // 路径是请求路径
         registry.addInterceptor(loginProtectInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/user/login");
+                .excludePathPatterns("/user/login")
+                .excludePathPatterns("/user/register");
     }
 }
