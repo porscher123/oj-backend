@@ -8,14 +8,17 @@ import com.wxc.oj.common.DeleteRequest;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
 import com.wxc.oj.constant.UserConstant;
+import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
+import com.wxc.oj.model.dto.judge.JudgeCase;
+import com.wxc.oj.model.dto.judge.JudgeConfig;
 import com.wxc.oj.model.dto.problem.ProblemAddRequest;
 import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
-import com.wxc.oj.model.pojo.Problem;
-import com.wxc.oj.model.pojo.User;
+import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
@@ -24,14 +27,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
 
 /**
- * 帖子接口
- *
-
+ * 题目
  */
 @RestController
 @RequestMapping("problem")
@@ -44,17 +47,15 @@ public class ProblemController {
     @Autowired
     private UserService userService;
 
-    // region 增删改查
+
 
     /**
-     * 创建
-     *
-     * @param
-     * @param request
-     * @return
+     * 创建题目
      */
     @PostMapping("add")
-    public BaseResponse<Long> addProblem(@RequestBody ProblemAddRequest problemAddRequest, HttpServletRequest request) {
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse addProblem(@RequestBody ProblemAddRequest problemAddRequest,
+                                   HttpServletRequest request) {
         if (problemAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -64,6 +65,14 @@ public class ProblemController {
         if (tags != null) {
             problem.setTags(JSONUtil.toJsonStr(tags));
         }
+        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
+        if (judgeCase != null) {
+            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+        }
+        JudgeConfig judgeConfig = problemAddRequest.getJudgeConfig();
+        if (judgeConfig != null) {
+            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
+        }
         problemService.validProblem(problem, true);
         // 获取当前用户
         User loginUser = userService.getLoginUser(request.getHeader("token"));
@@ -71,20 +80,22 @@ public class ProblemController {
         problem.setFavorNum(0);
         problem.setThumbNum(0);
         boolean result = problemService.save(problem);
+        // 添加失败
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newProblemId = problem.getId();
-        return ResultUtils.success(newProblemId);
+
+        Problem newProblem = problemService.getById(newProblemId);
+        Map data = new HashMap();
+        data.put("new problem", newProblem);
+        return ResultUtils.success(data);
     }
 
     /**
-     * 删除
-     *
-     * @param deleteRequest
-     * @param request
-     * @return
+     * 删除题目(逻辑删除)
      */
-    @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteProblem(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+    @PostMapping("delete")
+    public BaseResponse deleteProblem(@RequestBody DeleteRequest deleteRequest,
+                                    HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -103,67 +114,75 @@ public class ProblemController {
 
     /**
      * 更新（仅管理员）
-     *
-     * @param
-     * @return
      */
-    @PostMapping("/update")
+    @PostMapping("update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateProblem(@RequestBody ProblemUpdateRequest problemUpdateRequest) {
+    public BaseResponse<ProblemVO> updateProblem(@RequestBody ProblemUpdateRequest problemUpdateRequest) {
         if (problemUpdateRequest == null || problemUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 创建要保存到数据库中的problem
         Problem problem = new Problem();
         copyProperties(problemUpdateRequest, problem);
+        // 将对象转为json字符串存储
         List<String> tags = problemUpdateRequest.getTags();
         if (tags != null) {
             problem.setTags(JSONUtil.toJsonStr(tags));
+        }
+        List<JudgeCase> judgeCase = problemUpdateRequest.getJudgeCase();
+        if (judgeCase != null) {
+            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+        }
+        JudgeConfig judgeConfig = problemUpdateRequest.getJudgeConfig();
+        if (judgeConfig != null) {
+            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
         }
         // 参数校验
         problemService.validProblem(problem, false);
         Long id = problemUpdateRequest.getId();
         // 判断是否存在
         Problem oldProblem = problemService.getById(id);
+        // 要更新的problem不存在
         ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
-        boolean result = problemService.updateById(problem);
-        return ResultUtils.success(result);
+        // 执行更新操作
+        problemService.updateById(problem);
+        Problem newProblem = problemService.getById(oldProblem.getId());
+
+        return ResultUtils.success(problemService.getProblemVO(newProblem));
     }
 
     /**
-     * 根据 id 获取
-     *
-     * @param id
-     * @return
+     * 根据 id 获取题目
+     * GET方法
      */
     @GetMapping("/get/vo")
-    public BaseResponse<ProblemVO> getProblemVOById(Long id, HttpServletRequest request) {
+    public BaseResponse<ProblemVO> getProblemVOById(Long id) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Problem Problem = problemService.getById(id);
-        if (Problem == null) {
+        Problem problem = problemService.getById(id);
+        if (problem == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        return ResultUtils.success(problemService.getProblemVO(Problem, request));
+        return ResultUtils.success(problemService.getProblemVO(problem));
     }
 
     /**
-     * 分页获取列表（仅管理员）
-     * @param
-     * @return
+     * 分页获取题目列表（仅管理员）
      */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
+    public BaseResponse listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
-        Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
+        Page<Problem> problemPage = problemService.page(new Page<>(current, size),
                 problemService.getQueryWrapper(problemQueryRequest));
-        return ResultUtils.success(ProblemPage);
+        return ResultUtils.success(problemPage);
     }
 
     /**
      * 分页获取列表（封装类）
+     * 展示用户可见的部分
      * @param request
      * @return
      */

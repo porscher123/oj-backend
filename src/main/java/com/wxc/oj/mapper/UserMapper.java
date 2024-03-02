@@ -1,6 +1,6 @@
 package com.wxc.oj.mapper;
 
-import com.wxc.oj.model.pojo.User;
+import com.wxc.oj.model.entity.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

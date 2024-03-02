@@ -6,7 +6,7 @@ import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
-import com.wxc.oj.model.pojo.User;
+import com.wxc.oj.model.entity.User;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;

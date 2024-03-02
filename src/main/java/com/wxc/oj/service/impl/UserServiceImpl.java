@@ -4,14 +4,13 @@ import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.UserMapper;
 import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.enums.UserRoleEnum;
-import com.wxc.oj.model.pojo.User;
+import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.LoginUserVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
@@ -28,8 +27,6 @@ import org.springframework.util.DigestUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static com.wxc.oj.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * @author 王新超
@@ -125,7 +122,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return userVO;
     }
 
-
+    @Override
+    public List<User> queryUserVOByAccount(String userAccount) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(StringUtils.isNotBlank(userAccount), User::getUserAccount, userAccount);
+        List<User> userList = this.list(queryWrapper);
+        return userList;
+    }
 
 
     /**
@@ -274,6 +277,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String userRole = userQueryRequest.getUserRole();
         String sortField = userQueryRequest.getSortField();
         String sortOrder = userQueryRequest.getSortOrder();
+        if (sortOrder == null) {
+            sortOrder = CommonConstant.SORT_ORDER_ASC;
+        }
         // 先创建QueryWrapper
         var queryWrapper = new QueryWrapper<User>();
         queryWrapper.eq(id != null, "userId", id);

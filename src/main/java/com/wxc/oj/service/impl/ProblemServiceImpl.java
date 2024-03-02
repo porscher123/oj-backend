@@ -5,14 +5,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.constant.Level;
-import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ProblemMapper;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
-import com.wxc.oj.model.pojo.Problem;
-import com.wxc.oj.model.pojo.User;
+import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
@@ -92,16 +90,19 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         String title = problemQueryRequest.getTitle();
         List<String> tags = problemQueryRequest.getTags();
         String level = problemQueryRequest.getLevel();
-        int current = problemQueryRequest.getCurrent();
-        int pageSize = problemQueryRequest.getPageSize();
         String sortField = problemQueryRequest.getSortField();
         String sortOrder = problemQueryRequest.getSortOrder();
+        if (sortOrder == null) {
+            sortOrder = CommonConstant.SORT_ORDER_ASC;
+        }
 
         // 拼接查询条件
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title)
                 .eq(StringUtils.isNotBlank(level) && checkLevel(level),"level", level);
-        for (String tag : tags) {
-            queryWrapper.like(StringUtils.isNotBlank(tag), "tags", tag);
+        if (tags != null) {
+            for (String tag : tags) {
+                queryWrapper.like(StringUtils.isNotBlank(tag), "tags", tag);
+            }
         }
         queryWrapper.eq(ObjectUtils.isNotEmpty(id),"id", id);
 
@@ -114,14 +115,12 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
      * 生成要返回给前端的VO对象
      * 进行了数据脱敏
      * @param problem
-     * @param request
      * @return
      */
     @Override
-    public ProblemVO getProblemVO(Problem problem, HttpServletRequest request) {
-        // 将pojo转为vo
+    public ProblemVO getProblemVO(Problem problem) {
+        // 将entity转为vo
         ProblemVO problemVO = ProblemVO.objToVo(problem);
-        long problemId = problem.getId();
         // 补充vo的信息
         Long userId = problem.getUserId();
         User user = null;

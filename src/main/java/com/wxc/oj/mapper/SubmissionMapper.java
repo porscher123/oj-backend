@@ -1,7 +1,7 @@
 package com.wxc.oj.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.wxc.oj.model.pojo.Submission;
+import com.wxc.oj.model.entity.Submission;
 
 /**
 * @author 王新超

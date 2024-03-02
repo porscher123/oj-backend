@@ -25,9 +25,11 @@ public class WebMVCConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // 添加拦截器, 并配置拦截路径
         // 路径是请求路径
-        registry.addInterceptor(loginProtectInterceptor)
-                .addPathPatterns("/**")
-                .excludePathPatterns("/user/login")
-                .excludePathPatterns("/user/register");
+//        registry.addInterceptor(loginProtectInterceptor)
+//                .addPathPatterns("/**")
+//                .excludePathPatterns("/user/login")
+//                .excludePathPatterns("/user/register")
+//                .excludePathPatterns("/swagger-ui/**")
+//                .excludePathPatterns("/v3/**");
     }
 }

@@ -6,6 +6,7 @@ import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
 import com.wxc.oj.utils.JwtHelper;
+import com.wxc.oj.utils.SpringContextUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;

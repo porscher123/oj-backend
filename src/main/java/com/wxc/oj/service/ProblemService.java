@@ -3,7 +3,7 @@ package com.wxc.oj.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
-import com.wxc.oj.model.pojo.Problem;
+import com.wxc.oj.model.entity.Problem;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wxc.oj.model.vo.ProblemVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,10 +36,9 @@ public interface ProblemService extends IService<Problem> {
      * 获取帖子封装
      *
      * @param post
-     * @param request
      * @return
      */
-    ProblemVO getProblemVO(Problem post, HttpServletRequest request);
+    ProblemVO getProblemVO(Problem post);
 
     /**
      * 分页获取帖子封装

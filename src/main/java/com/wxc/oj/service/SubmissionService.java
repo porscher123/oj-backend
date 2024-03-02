@@ -1,9 +1,9 @@
 package com.wxc.oj.service;
 
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
-import com.wxc.oj.model.pojo.Submission;
+import com.wxc.oj.model.entity.Submission;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.wxc.oj.model.pojo.User;
+import com.wxc.oj.model.entity.User;
 
 /**
 * @author 王新超

@@ -56,9 +56,9 @@ mybatis-plus:
             logic-delete-value: 1 # 逻辑已删除值(默认为 1)
             logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
             # 配置MyBatis-Plus操作表的默认前缀
-#            table-prefix: t_
+            # table-prefix: t_
             # 配置MyBatis-Plus的主键策略
-            id-type: assign_id
+            id-type: assign_id #雪花算法
 
 
 # 自定义token的配置属性
@@ -69,5 +69,5 @@ jwt:
 server:
     reactive:
         session:
-            timeout:
+            timeout: 8000
     port: 8080

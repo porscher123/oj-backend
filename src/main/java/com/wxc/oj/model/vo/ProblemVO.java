@@ -2,7 +2,7 @@ package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
 import com.wxc.oj.model.dto.judge.JudgeConfig;
-import com.wxc.oj.model.pojo.Problem;
+import com.wxc.oj.model.entity.Problem;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
