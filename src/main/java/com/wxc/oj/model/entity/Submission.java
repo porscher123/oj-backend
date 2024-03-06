@@ -27,10 +27,6 @@ public class Submission implements Serializable {
 
     private String language;
 
-    private String title;
-
-    private String content;
-
     private Date createTime;
 
     private Date updateTime;

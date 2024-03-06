@@ -135,11 +135,10 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     /**
      * 生成分页的VO对象
      * @param problemPage
-     * @param request
      * @return
      */
     @Override
-    public Page<ProblemVO> getProblemVOPage(Page<Problem> problemPage, HttpServletRequest request) {
+    public Page<ProblemVO> getProblemVOPage(Page<Problem> problemPage) {
         List<Problem> problemList = problemPage.getRecords();
         Page<ProblemVO> problemVOPage = new Page<>(problemPage.getCurrent(), problemPage.getSize(), problemPage.getTotal());
         if (CollUtil.isEmpty(problemList)) {

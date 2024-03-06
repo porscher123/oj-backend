@@ -12,6 +12,7 @@ import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.model.dto.user.*;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.vo.LoginUserVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.JwtHelper;
@@ -45,7 +46,7 @@ public class UserController {
      * @return 返回注册成功的user的VO对象
      */
     @PostMapping("register")
-    public BaseResponse<UserVO> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+    public BaseResponse userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -56,7 +57,6 @@ public class UserController {
             return null;
         }
         UserVO userVO = userService.userRegister(userAccount, userPassword, checkPassword);
-
         return ResultUtils.success(userVO);
     }
 
@@ -99,16 +99,16 @@ public class UserController {
 //        return ResultUtils.success(result);
 //    }
 
-//    /**
-//     * 通过token获取当前登录用户
-//     * @param token
-//     * @return
-//     */
-//    @GetMapping("/get/login")
-//    public BaseResponse<LoginUserVO> getLoginUser(@RequestHeader String token) {
-//        User user = userService.getLoginUser(token);
-//        return ResultUtils.success(userService.getLoginUserVO(user));
-//    }
+    /**
+     * 通过token获取当前登录用户
+     * @param token
+     * @return
+     */
+    @GetMapping("/get/login")
+    public BaseResponse<LoginUserVO> getLoginUser(@RequestHeader String token) {
+        User user = userService.getLoginUser(token);
+        return ResultUtils.success(userService.getLoginUserVO(user));
+    }
 
 
     /**
@@ -119,7 +119,7 @@ public class UserController {
      */
     @PostMapping("add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
+    public BaseResponse addUser(@RequestBody UserAddRequest userAddRequest) {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -131,18 +131,18 @@ public class UserController {
         user.setUserPassword(encryptPassword);
         boolean result = userService.save(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(user.getId());
+        User createdUser = userService.getById(user.getId());
+        UserVO userVO = userService.getUserVO(createdUser);
+        return ResultUtils.success(userVO);
     }
 
     /**
      * 删除用户
      * @param deleteRequest
-     * @param request
-     * @return
      */
     @PostMapping("delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+    public BaseResponse deleteUser(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -159,18 +159,17 @@ public class UserController {
     /**
      * 根据 id 获取用户（仅管理员）
      * @param id
-     * @param request
-     * @return
      */
-    @GetMapping("/get")
+    @GetMapping("get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<User> getUserById(long id, HttpServletRequest request) {
+    public BaseResponse getUserById(long id) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = userService.getById(id);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(user);
+        UserVO userVO = userService.getUserVO(user);
+        return ResultUtils.success(userVO);
     }
 
     /**
@@ -223,7 +222,7 @@ public class UserController {
      */
     @PostMapping("update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<UserVO> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+    public BaseResponse updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -251,5 +250,22 @@ public class UserController {
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 查询自己信息
+     */
+    @GetMapping("/get/my")
+    public BaseResponse queryMyUser(@RequestBody UserQueryRequest userQueryRequest,
+                                              HttpServletRequest request) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 当前用户
+        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        return ResultUtils.success(loginUser);
     }
 }

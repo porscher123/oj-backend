@@ -1,6 +1,8 @@
 package com.wxc.oj.model.dto.judge;
 
 
+import lombok.Data;
+
 /**
  * 表示一个判题的结果
  * {
@@ -9,6 +11,7 @@ package com.wxc.oj.model.dto.judge;
  *     "memory": 20，//单位为KB
  * }
  */
+@Data
 public class JudgeInfo {
     /**
      * 这次提交的通过情况

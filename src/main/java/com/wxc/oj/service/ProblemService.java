@@ -47,5 +47,5 @@ public interface ProblemService extends IService<Problem> {
      * @param request
      * @return
      */
-    Page<ProblemVO> getProblemVOPage(Page<Problem> postPage, HttpServletRequest request);
+    Page<ProblemVO> getProblemVOPage(Page<Problem> postPage);
 }

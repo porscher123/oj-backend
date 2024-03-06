@@ -182,12 +182,12 @@ public class ProblemController {
 
     /**
      * 分页获取列表（封装类）
-     * 展示用户可见的部分
+     * 展示用户可见的部分(普通用户使用)
      * @param request
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<ProblemVO>> listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
+    public BaseResponse listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
             HttpServletRequest request) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
@@ -195,7 +195,7 @@ public class ProblemController {
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
                 problemService.getQueryWrapper(problemQueryRequest));
-        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage, request));
+        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage));
     }
 
     /**
@@ -218,7 +218,7 @@ public class ProblemController {
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
                 problemService.getQueryWrapper(problemQueryRequest));
-        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage, request));
+        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage));
     }
 
 
