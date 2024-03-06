@@ -42,7 +42,8 @@ public interface UserService extends IService<User> {
      * 通过token获取当前登录用户
      * @return
      */
-    User getLoginUser(String token);
+//    User getLoginUser(String token);
+    User getLoginUser(HttpServletRequest request);
 
 //    /**
 //     * 获取当前登录用户（允许未登录）

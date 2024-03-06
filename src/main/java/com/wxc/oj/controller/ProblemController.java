@@ -75,7 +75,7 @@ public class ProblemController {
         }
         problemService.validProblem(problem, true);
         // 获取当前用户
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         problem.setUserId(loginUser.getId());
         problem.setFavorNum(0);
         problem.setThumbNum(0);
@@ -99,7 +99,7 @@ public class ProblemController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = userService.getLoginUser(request.getHeader("token"));
+        User user = userService.getLoginUser(request);
         Long id = deleteRequest.getId();
         // 判断是否存在
         Problem oldProblem = problemService.getById(id);
@@ -210,7 +210,7 @@ public class ProblemController {
         if (problemQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         problemQueryRequest.setUserId(loginUser.getId());
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
@@ -243,7 +243,7 @@ public class ProblemController {
         }
         // 参数校验
         problemService.validProblem(Problem, false);
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         Long id = problemEditRequest.getId();
         // 判断是否存在
         Problem oldProblem = problemService.getById(id);

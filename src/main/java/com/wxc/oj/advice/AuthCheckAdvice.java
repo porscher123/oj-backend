@@ -43,7 +43,7 @@ public class AuthCheckAdvice {
         // 获取当前请求
         HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
         // 当前登录用户
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         // 必须有该权限才通过
         if (StringUtils.isNotBlank(mustRole)) {
             UserRoleEnum mustUserRoleEnum = UserRoleEnum.getEnumByValue(mustRole);

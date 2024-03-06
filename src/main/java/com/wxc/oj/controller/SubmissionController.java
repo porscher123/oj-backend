@@ -50,7 +50,7 @@ public class SubmissionController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 获取当前用户
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         // 执行插入submission操作
         Submission submission = submissionService.submitCode(submissionAddRequest, loginUser);
         return ResultUtils.success(submission);

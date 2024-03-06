@@ -1,6 +1,5 @@
 package com.wxc.oj.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
@@ -12,7 +11,6 @@ import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.model.dto.user.*;
 import com.wxc.oj.model.entity.User;
-import com.wxc.oj.model.vo.LoginUserVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.JwtHelper;
@@ -28,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.wxc.oj.constant.UserConstant.USER_LOGIN_STATE;
 import static com.wxc.oj.service.impl.UserServiceImpl.SALT;
 
 @RestController
@@ -42,6 +41,7 @@ public class UserController {
 
     /**
      * 用户注册
+     *
      * @param userRegisterRequest
      * @return 返回注册成功的user的VO对象
      */
@@ -62,12 +62,13 @@ public class UserController {
 
     /**
      * 用户登录
+     *
      * @param userLoginRequest
      * @param
      * @return
      */
     @PostMapping("login")
-    public BaseResponse userLogin(@RequestBody UserLoginRequest userLoginRequest) {
+    public BaseResponse<UserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -78,44 +79,43 @@ public class UserController {
         }
         UserVO userVO = userService.userLogin(userAccount, userPassword);
         Map data = new HashMap();
+        request.getSession().setAttribute(USER_LOGIN_STATE, userVO);
         data.put("loginUser", userVO);
-        data.put("token", jwtHelper.createToken(userVO.getId()));
-        return ResultUtils.success(data);
+//        data.put("token", jwtHelper.createToken(userVO.getId()));
+        return ResultUtils.success(userVO);
     }
 
 
-
-//    /**
-//     * 用户注销
-//     * @param request
-//     * @return
-//     */
-//    @PostMapping("logout")
-//    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
-//        if (request == null) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-//        }
-//        boolean result = userService.userLogout(request);
-//        return ResultUtils.success(result);
-//    }
+    @PostMapping("logout")
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
 
     /**
      * 通过token获取当前登录用户
-     * @param token
-     * @return
      */
     @GetMapping("/get/login")
-    public BaseResponse<LoginUserVO> getLoginUser(@RequestHeader String token) {
-        User user = userService.getLoginUser(token);
-        return ResultUtils.success(userService.getLoginUserVO(user));
+    public BaseResponse<UserVO> getLoginUser(HttpServletRequest request) {
+        User user = userService.getLoginUser(request);
+
+        return ResultUtils.success(userService.getUserVO(user));
     }
+    /**
+     * 获取当前登录用户
+     *
+     * @param request
+     * @return
+     */
 
 
     /**
      * 创建用户(管理员)
+     *
      * @param userAddRequest
-     * @param request
-     * @return
      */
     @PostMapping("add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -138,6 +138,7 @@ public class UserController {
 
     /**
      * 删除用户
+     *
      * @param deleteRequest
      */
     @PostMapping("delete")
@@ -155,9 +156,9 @@ public class UserController {
     }
 
 
-
     /**
      * 根据 id 获取用户（仅管理员）
+     *
      * @param id
      */
     @GetMapping("get")
@@ -198,7 +199,7 @@ public class UserController {
 
     /**
      * 分页获取用户封装列表
-     *  用于普通用户
+     * 用于普通用户
      */
     @PostMapping("/list/page/vo")
     public BaseResponse listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
@@ -233,6 +234,7 @@ public class UserController {
         UserVO userVO = userService.getUserVO(user);
         return ResultUtils.success(userVO);
     }
+
     /**
      * 当前登录用户更新个人信息
      */
@@ -243,7 +245,7 @@ public class UserController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 当前用户
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         User user = new User();
         BeanUtils.copyProperties(userUpdateMyRequest, user);
         user.setId(loginUser.getId());
@@ -257,12 +259,12 @@ public class UserController {
      */
     @GetMapping("/get/my")
     public BaseResponse queryMyUser(@RequestBody UserQueryRequest userQueryRequest,
-                                              HttpServletRequest request) {
+                                    HttpServletRequest request) {
         if (userQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 当前用户
-        User loginUser = userService.getLoginUser(request.getHeader("token"));
+        User loginUser = userService.getLoginUser(request);
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }

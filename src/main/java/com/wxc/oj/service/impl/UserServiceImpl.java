@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.wxc.oj.constant.UserConstant.USER_LOGIN_STATE;
+
 /**
  * @author 王新超
  * @description 针对表【user】的数据库操作Service实现
@@ -117,7 +119,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 脱敏
         UserVO userVO = getUserVO(user);
         // 3. 记录用户的登录态
-        // request.getSession().setAttribute(USER_LOGIN_STATE, user);
         // 登录成功, 根据id生成token
         return userVO;
     }
@@ -136,21 +137,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param request
      * @return
      */
-//    public User getLoginUser(HttpServletRequest request) {
-//        // 先判断是否已登录
-//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-//        User currentUser = (User) userObj;
-//        if (currentUser == null || currentUser.getId() == null) {
-//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-//        }
-//        // 从数据库查询（追求性能的话可以注释，直接走缓存）
-//        long userId = currentUser.getId();
-//        currentUser = this.getById(userId);
-//        if (currentUser == null) {
-//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-//        }
-//        return currentUser;
-//    }
+    public User getLoginUser(HttpServletRequest request) {
+        // 先判断是否已登录
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        // 从数据库查询（追求性能的话可以注释，直接走缓存）
+        long userId = currentUser.getId();
+        currentUser = this.getById(userId);
+        if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        return currentUser;
+    }
     /**
      * TODO:
      *      1. 校验token有效性(是否过期)
@@ -161,18 +162,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param token
      * @return
      */
-    @Override
-    public User getLoginUser(String token) {
-        if (jwtHelper.isExpiration(token)) {
-            // token失效, 视作未登录
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-        // 校验成功, 获取id查询, 封装, 返回
-        int userId = jwtHelper.getUserId(token).intValue();
-        User loginUser = this.getById(userId);
-//        UserVO userVO = getUserVO(loginUser);
-        return loginUser;
-    }
+//    @Override
+//    public User getLoginUser(String token) {
+//        if (jwtHelper.isExpiration(token)) {
+//            // token失效, 视作未登录
+//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+//        }
+//        // 校验成功, 获取id查询, 封装, 返回
+//        int userId = jwtHelper.getUserId(token).intValue();
+//        User loginUser = this.getById(userId);
+////        UserVO userVO = getUserVO(loginUser);
+//        return loginUser;
+//    }
 
 //    /**
 //     * 获取当前登录用户（允许未登录）
@@ -199,7 +200,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     public boolean isAdmin(HttpServletRequest request) {
         // 仅管理员可查询
-        User loginUser = this.getLoginUser(request.getHeader("token"));
+        User loginUser = this.getLoginUser(request);
         return isAdmin(loginUser);
     }
 
@@ -211,6 +212,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public boolean userLogout(HttpServletRequest request) {
         return false;
+    }
+
+    @Override
+    public LoginUserVO getLoginUserVO(User user) {
+        return null;
     }
 
     /**
@@ -229,7 +235,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 //    }
 
 
-    public LoginUserVO getLoginUserVO(User user) {
+    public LoginUserVO fUserVO(User user) {
         if (user == null) {
             return null;
         }
