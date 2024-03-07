@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
+import static org.springframework.beans.BeanUtils.resolveSignature;
 
 /**
  * 题目
@@ -167,6 +168,25 @@ public class ProblemController {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
         return ResultUtils.success(problemService.getProblemVO(problem));
+    }
+    /**
+     * 根据 id 获取题目
+     * GET方法 不脱敏
+     */
+    @GetMapping("/get")
+    public BaseResponse<Problem> getProblemById(Long id, HttpServletRequest request) {
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Problem problem = problemService.getById(id);
+        if (problem == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        if (!problem.getId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "不能查看其它用户的题目的全部信息");
+        }
+        return ResultUtils.success(problem);
     }
 
     /**
