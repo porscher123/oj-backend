@@ -64,7 +64,7 @@ mybatis-plus:
 # 自定义token的配置属性
 jwt:
     token:
-        tokenExpiration: 86400000 # 有效时间
+        tokenExpiration: 86400000 # 有效时间ms
         tokenSignKey: headline123456 # 签名密钥
 server:
     reactive:

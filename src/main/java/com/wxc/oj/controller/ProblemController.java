@@ -20,6 +20,7 @@ import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.ProblemVO;
+import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +55,7 @@ public class ProblemController {
      */
     @PostMapping("add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse addProblem(@RequestBody ProblemAddRequest problemAddRequest,
+    public BaseResponse<Problem> addProblem(@RequestBody ProblemAddRequest problemAddRequest,
                                    HttpServletRequest request) {
         if (problemAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -79,15 +80,16 @@ public class ProblemController {
         problem.setUserId(loginUser.getId());
         problem.setFavorNum(0);
         problem.setThumbNum(0);
+        problem.setSubmittedNum(0);
+        problem.setAcceptedNum(0);
+        // 保存答案
         boolean result = problemService.save(problem);
         // 添加失败
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         long newProblemId = problem.getId();
 
         Problem newProblem = problemService.getById(newProblemId);
-        Map data = new HashMap();
-        data.put("new problem", newProblem);
-        return ResultUtils.success(data);
+        return ResultUtils.success(newProblem);
     }
 
     /**
@@ -172,11 +174,14 @@ public class ProblemController {
      */
     @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
+    public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
+        System.out.println("***************" + current + "       " +size);
         Page<Problem> problemPage = problemService.page(new Page<>(current, size),
                 problemService.getQueryWrapper(problemQueryRequest));
+        long total = problemPage.getTotal();
+        System.out.println("************************" + total);
         return ResultUtils.success(problemPage);
     }
 

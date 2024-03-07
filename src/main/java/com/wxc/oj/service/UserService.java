@@ -34,7 +34,7 @@ public interface UserService extends IService<User> {
      * @param userPassword 用户密码
      * @return 脱敏后的用户信息
      */
-    UserVO userLogin(String userAccount, String userPassword);
+    UserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
 
     List<User> queryUserVOByAccount(String userAccount);
@@ -82,7 +82,7 @@ public interface UserService extends IService<User> {
      *
      * @return
      */
-    LoginUserVO getLoginUserVO(User user);
+//    LoginUserVO getLoginUserVO(User user);
 
     /**
      * 获取脱敏的用户信息

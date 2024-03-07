@@ -30,6 +30,9 @@ public class LoginUserVO implements Serializable {
      */
     private String userProfile;
 
+
+    private String token;
+
     /**
      * 用户角色：user/admin/ban
      */

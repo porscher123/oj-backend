@@ -98,7 +98,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param userPassword 用户密码
      * @return
      */
-    public UserVO userLogin(String userAccount, String userPassword) {
+    public UserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -116,10 +116,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
         // 脱敏
         UserVO userVO = getUserVO(user);
-        // 3. 记录用户的登录态
-        // 登录成功, 根据id生成token
         return userVO;
     }
 
@@ -159,11 +158,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      *      3. 根据UserId查询用户数据
      *      4. 去掉密码(因为数据库中的密码是加密的,
      *          不应该返回, 再说用户肯定知道自己的密码), 封装Result返回
-     * @param token
-     * @return
      */
 //    @Override
-//    public User getLoginUser(String token) {
+//    public User getLoginUser(HttpServletRequest request) {
+//        String token = request.getHeader("token");
 //        if (jwtHelper.isExpiration(token)) {
 //            // token失效, 视作未登录
 //            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
@@ -171,7 +169,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 //        // 校验成功, 获取id查询, 封装, 返回
 //        int userId = jwtHelper.getUserId(token).intValue();
 //        User loginUser = this.getById(userId);
-////        UserVO userVO = getUserVO(loginUser);
 //        return loginUser;
 //    }
 
@@ -209,15 +206,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
     }
 
-    @Override
-    public boolean userLogout(HttpServletRequest request) {
-        return false;
-    }
+//    @Override
+//    public boolean userLogout(HttpServletRequest request) {
+//        return false;
+//    }
 
-    @Override
-    public LoginUserVO getLoginUserVO(User user) {
-        return null;
-    }
+//    @Override
+//    public LoginUserVO getLoginUserVO(User user) {
+//        return null;
+//    }
 
     /**
      * 用户注销
@@ -225,24 +222,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param
      */
 
-//    public boolean userLogout(HttpServletRequest request) {
-//        if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
-//            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
-//        }
-//        // 移除登录态
-//        request.getSession().removeAttribute(USER_LOGIN_STATE);
-//        return true;
-//    }
-
-
-    public LoginUserVO fUserVO(User user) {
-        if (user == null) {
-            return null;
+    public boolean userLogout(HttpServletRequest request) {
+        if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
         }
-        LoginUserVO loginUserVO = new LoginUserVO();
-        BeanUtils.copyProperties(user, loginUserVO);
-        return loginUserVO;
+        // 移除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return true;
     }
+
+
+//    @Override
+//    public LoginUserVO getUserVO(User user) {
+//        if (user == null) {
+//            return null;
+//        }
+//        LoginUserVO loginUserVO = new LoginUserVO();
+//        BeanUtils.copyProperties(user, loginUserVO);
+//        return loginUserVO;
+//    }
 
     /**
      * user -> userVO

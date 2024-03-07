@@ -39,21 +39,21 @@ public class LoginProtectInterceptor implements HandlerInterceptor {
      *         false -> 不放行
      * @throws Exception
      */
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String token = request.getHeader("token");
-        // token为空, 肯定是无效的
-        boolean expiration = jwtHelper.isExpiration(token);
-        // 有效
-        if (!expiration) {
-            return true;
-        }
-        // token无效, 设置响应体内容
-        BaseResponse result = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR);
-        ObjectMapper objectMapper = new ObjectMapper();
-        String json = objectMapper.writeValueAsString(result);
-        response.getWriter().print(json);
-        return false;
-    }
+//    @Override
+//    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+//        String token = request.getHeader("token");
+//        // token为空, 肯定是无效的
+//        boolean expiration = jwtHelper.isExpiration(token);
+//        // 有效
+//        if (!expiration) {
+//            return true;
+//        }
+//        // token无效, 设置响应体内容
+//        BaseResponse result = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR);
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        String json = objectMapper.writeValueAsString(result);
+//        response.getWriter().print(json);
+//        return false;
+//    }
 
 }

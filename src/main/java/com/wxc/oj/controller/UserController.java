@@ -77,23 +77,19 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        UserVO userVO = userService.userLogin(userAccount, userPassword);
-        Map data = new HashMap();
-        request.getSession().setAttribute(USER_LOGIN_STATE, userVO);
-        data.put("loginUser", userVO);
-//        data.put("token", jwtHelper.createToken(userVO.getId()));
+        UserVO userVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(userVO);
     }
 
 
-    @PostMapping("logout")
-    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
-        if (request == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        boolean result = userService.userLogout(request);
-        return ResultUtils.success(result);
-    }
+//    @PostMapping("logout")
+//    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+//        if (request == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        boolean result = userService.userLogout(request);
+//        return ResultUtils.success(result);
+//    }
 
     /**
      * 通过token获取当前登录用户
@@ -101,7 +97,6 @@ public class UserController {
     @GetMapping("/get/login")
     public BaseResponse<UserVO> getLoginUser(HttpServletRequest request) {
         User user = userService.getLoginUser(request);
-
         return ResultUtils.success(userService.getUserVO(user));
     }
     /**
