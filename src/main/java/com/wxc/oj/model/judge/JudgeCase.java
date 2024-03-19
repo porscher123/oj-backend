@@ -1,4 +1,4 @@
-package com.wxc.oj.model.dto.judge;
+package com.wxc.oj.model.judge;
 
 import lombok.Data;
 

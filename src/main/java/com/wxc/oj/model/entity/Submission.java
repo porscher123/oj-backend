@@ -23,6 +23,9 @@ public class Submission implements Serializable {
 
     private String judgeInfo;
 
+    /**
+     * 提交的状态 是Integer
+     */
     private Integer status;
 
     private String language;

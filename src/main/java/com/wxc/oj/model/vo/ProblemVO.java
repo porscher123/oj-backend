@@ -1,7 +1,7 @@
 package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
-import com.wxc.oj.model.dto.judge.JudgeConfig;
+import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.entity.Problem;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -15,6 +15,7 @@ import java.util.List;
  */
 @Data
 public class ProblemVO implements Serializable {
+
     /**
      * 可以给前端用户查看题目id
      */
@@ -85,7 +86,9 @@ public class ProblemVO implements Serializable {
         ProblemVO problemVO = new ProblemVO();
         BeanUtils.copyProperties(problem, problemVO);
         // vo的tags时List<String>, 要将pojo的JSON String 转换
-        problemVO.setTagList(JSONUtil.toList(problem.getTags(), String.class));
+        String tags1 = problem.getTags();
+        List<String> list = JSONUtil.toList(problem.getTags(), String.class);
+        problemVO.setTagList(list);
         // 将pojo的json字符串转为JudgeConfig类
         problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
         return problemVO;

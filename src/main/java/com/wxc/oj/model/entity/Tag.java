@@ -17,5 +17,7 @@ public class Tag implements Serializable {
 
     private String name;
 
+    private String color;
+
     private static final long serialVersionUID = 1L;
 }

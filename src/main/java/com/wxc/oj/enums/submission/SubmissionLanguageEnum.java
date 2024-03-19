@@ -1,4 +1,4 @@
-package com.wxc.oj.enums;
+package com.wxc.oj.enums.submission;
 
 import java.util.Arrays;
 import java.util.List;

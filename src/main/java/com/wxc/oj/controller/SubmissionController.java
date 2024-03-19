@@ -14,9 +14,13 @@ import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.judge.JudgeInfo;
+import com.wxc.oj.model.submission.SubmissionResult;
 import com.wxc.oj.model.vo.SubmissionVO;
+import com.wxc.oj.service.JudgeService;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,18 +29,25 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.util.List;
+
 @RestController
 @RequestMapping("submission")
-@Slf4j
+@Slf4j(topic = "SubmissionController")
 public class SubmissionController {
 
 
-    @Autowired
+    @Resource
     private SubmissionService submissionService;
 
 
-    @Autowired
+    @Resource
     private UserService userService;
+
+
+    @Resource
+    private JudgeService judgeService;
 
 
     /**
@@ -45,7 +56,7 @@ public class SubmissionController {
      * @return 提交的submission id
      */
     @PostMapping("submit")
-    public BaseResponse doSubmit(@RequestBody SubmissionAddRequest submissionAddRequest, HttpServletRequest request) {
+    public BaseResponse doSubmit(@RequestBody SubmissionAddRequest submissionAddRequest, HttpServletRequest request) throws IOException {
         if (submissionAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -53,7 +64,9 @@ public class SubmissionController {
         User loginUser = userService.getLoginUser(request);
         // 执行插入submission操作
         Submission submission = submissionService.submitCode(submissionAddRequest, loginUser);
-        return ResultUtils.success(submission);
+        // todo: 执行判题服务
+        SubmissionResult submissionResult = judgeService.doJudge(submission.getId());
+        return ResultUtils.success(submissionResult);
     }
 
     /**

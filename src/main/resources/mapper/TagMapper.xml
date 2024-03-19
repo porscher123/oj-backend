@@ -7,9 +7,10 @@
     <resultMap id="BaseResultMap" type="com.wxc.oj.model.entity.Tag">
             <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="name" column="name" jdbcType="VARCHAR"/>
+            <result property="color" column="color" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,name
+        id,name,color
     </sql>
 </mapper>

@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
+import java.util.Date;
 
 
 /**
@@ -20,6 +21,10 @@ public class SubmissionQueryDTO extends PageRequest implements Serializable {
     private String language;
 
     private String JudgeResult;
+
+
+    private Date createTime;
+
 
     private static final long serialVersionUID = 1L;
 }

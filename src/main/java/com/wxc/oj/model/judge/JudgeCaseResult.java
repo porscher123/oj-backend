@@ -1,5 +1,4 @@
-package com.wxc.oj.model.dto.judge;
-
+package com.wxc.oj.model.judge;
 
 import lombok.Data;
 
@@ -12,7 +11,7 @@ import lombok.Data;
  * }
  */
 @Data
-public class JudgeInfo {
+public class JudgeCaseResult {
     /**
      * 这次提交的通过情况
      */
@@ -20,9 +19,9 @@ public class JudgeInfo {
     /**
      * 这次提交的时间消耗
      */
-    private String timeCost;
+    private Long timeCost;
     /**
      * 使用的内存
      */
-    private String memoryUsed;
+    private Long memoryUsed;
 }

@@ -1,15 +1,9 @@
 package com.wxc.oj.model.vo;
 
-import cn.hutool.json.JSON;
-import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.wxc.oj.common.PageRequest;
-import com.wxc.oj.model.dto.judge.JudgeConfig;
-import com.wxc.oj.model.dto.judge.JudgeInfo;
-import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
+import com.wxc.oj.model.judge.JudgeInfo;
 import lombok.Data;
-import nonapi.io.github.classgraph.json.JSONUtils;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
@@ -30,9 +24,27 @@ public class SubmissionVO implements Serializable {
 
     private String sourceCode;
 
-    private JudgeInfo judgeInfo;
+    /**
+     * 返回多组测试用例的判题信息
+     */
+    private List<JudgeInfo> judgeInfo;
 
+    /**
+     * 判题结果
+     * AC, WA...
+     */
+    private String result;
+
+    /**
+     * 判题状态
+     * waiting, ...
+     */
     private Integer status;
+
+    /**
+     * 得分: AC的样例占总样例的比例
+     */
+    private Integer score;
 
     private String language;
 
@@ -54,7 +66,7 @@ public class SubmissionVO implements Serializable {
         Submission submission = new Submission();
         BeanUtils.copyProperties(submissionVO, submission);
         // 将submissionVO的JudgeInfo 转为 字符串 存到entity
-        JudgeInfo judgeInfo = submissionVO.getJudgeInfo();
+        JudgeInfo judgeInfo = (JudgeInfo) submissionVO.getJudgeInfo();
         if (judgeInfo != null) {
             submission.setJudgeInfo(JSONUtil.toJsonStr(judgeInfo));
         }
@@ -74,7 +86,7 @@ public class SubmissionVO implements Serializable {
 
         String judgeInfoString = submission.getJudgeInfo();
         JudgeInfo judgeInfoObj = JSONUtil.toBean(judgeInfoString, JudgeInfo.class);
-        submissionVO.setJudgeInfo(judgeInfoObj);
+        submissionVO.setJudgeInfo((List<JudgeInfo>) judgeInfoObj);
         return submissionVO;
     }
 }

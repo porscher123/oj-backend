@@ -1,7 +1,7 @@
 package com.wxc.oj.model.dto.problem;
 
-import com.wxc.oj.model.dto.judge.JudgeCase;
-import com.wxc.oj.model.dto.judge.JudgeConfig;
+import com.wxc.oj.model.judge.JudgeCase;
+import com.wxc.oj.model.judge.JudgeConfig;
 import lombok.Data;
 
 import java.io.Serializable;

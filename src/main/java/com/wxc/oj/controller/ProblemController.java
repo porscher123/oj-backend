@@ -8,11 +8,10 @@ import com.wxc.oj.common.DeleteRequest;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
 import com.wxc.oj.constant.UserConstant;
-import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
-import com.wxc.oj.model.dto.judge.JudgeCase;
-import com.wxc.oj.model.dto.judge.JudgeConfig;
+import com.wxc.oj.model.judge.JudgeCase;
+import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.dto.problem.ProblemAddRequest;
 import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
@@ -20,7 +19,6 @@ import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.ProblemVO;
-import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,12 +26,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
-import static org.springframework.beans.BeanUtils.resolveSignature;
 
 /**
  * 题目
