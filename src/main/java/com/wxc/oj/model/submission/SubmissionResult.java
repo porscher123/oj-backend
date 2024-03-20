@@ -2,6 +2,7 @@ package com.wxc.oj.model.submission;
 
 
 import com.wxc.oj.model.judge.JudgeCaseResult;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.Data;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @Data
 public class SubmissionResult {
 
+    private Integer score;
 
     private String message;
 

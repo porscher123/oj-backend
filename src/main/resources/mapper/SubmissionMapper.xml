@@ -9,7 +9,7 @@
             <result property="userId" column="user_id" jdbcType="BIGINT"/>
             <result property="problemId" column="problem_id" jdbcType="BIGINT"/>
             <result property="sourceCode" column="source_code" jdbcType="VARCHAR"/>
-            <result property="judgeInfo" column="judge_info" jdbcType="VARCHAR"/>
+            <result property="submissionResult" column="submission_result" jdbcType="VARCHAR"/>
             <result property="status" column="status" jdbcType="INTEGER"/>
             <result property="language" column="language" jdbcType="VARCHAR"/>
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
@@ -19,7 +19,7 @@
 
     <sql id="Base_Column_List">
         id,user_id,problem_id,
-        source_code,judge_info,status,
+        source_code,submission_result,status,
         language, create_time,update_time,is_delete
     </sql>
 </mapper>

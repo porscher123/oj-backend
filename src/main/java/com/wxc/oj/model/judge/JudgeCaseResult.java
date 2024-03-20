@@ -19,9 +19,9 @@ public class JudgeCaseResult {
     /**
      * 这次提交的时间消耗
      */
-    private Long timeCost;
+    private String timeCost;
     /**
      * 使用的内存
      */
-    private Long memoryUsed;
+    private String memoryUsed;
 }

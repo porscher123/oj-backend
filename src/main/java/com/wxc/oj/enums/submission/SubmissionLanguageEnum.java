@@ -19,6 +19,12 @@ public enum SubmissionLanguageEnum {
     SubmissionLanguageEnum(String value) {
         this.value = value;
     }
+
+
+    public String getValue() {
+        return value;
+    }
+
     /**
      * 获取值列表
      * @return

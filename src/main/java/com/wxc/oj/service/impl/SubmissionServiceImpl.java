@@ -42,13 +42,6 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
     @Resource
     private ProblemService problemService;
 
-
-    @Resource
-    private JudgeService judgeService;
-
-
-    @Resource
-    private UserService userService;
     /**
      * 提交代码
      * @param submissionAddRequest
@@ -80,7 +73,7 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         submission.setLanguage(submissionAddRequest.getLanguage());
         // 初始化判题状态为 waiting
         submission.setStatus(SubmissionStatusEnum.WAITING.getValue());
-        submission.setJudgeInfo("{}");
+        submission.setSubmissionResult("{}");
         // 保存到数据库
         boolean save = this.save(submission);
         if (!save) {
