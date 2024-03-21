@@ -1,6 +1,8 @@
 package com.wxc.oj.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
@@ -16,20 +18,20 @@ import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.judge.JudgeInfo;
 import com.wxc.oj.model.submission.SubmissionResult;
+import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.SubmissionVO;
 import com.wxc.oj.service.JudgeService;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.service.UserService;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -80,5 +82,28 @@ public class SubmissionController {
                 submissionService.getQueryWrapper(submissionQueryDTO));
         Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(submissionPage);
         return ResultUtils.success(submissionVOPage);
+    }
+    /**
+     * 分页获取submission
+     */
+    @GetMapping("/get/page")
+    public BaseResponse getSubmissionPage(Long id) {
+        long current = 1;
+        long size = 1;
+        Submission byId = submissionService.getById(id);
+        SubmissionVO submissionVO = SubmissionVO.objToVo(byId);
+        ArrayList<SubmissionVO> submissionVOS = new ArrayList<>();
+        QueryWrapper<Submission> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("id", id);
+        Page<Submission> page = submissionService.page(new Page<>(current, size), queryWrapper);
+        submissionVOS.add(submissionVO);
+        Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(page);
+        return ResultUtils.success(submissionVOPage);
+    }
+    @GetMapping("/get")
+    public BaseResponse getSubmission(Long id) {
+        Submission byId = submissionService.getById(id);
+        SubmissionVO submissionVO = SubmissionVO.objToVo(byId);
+        return ResultUtils.success(submissionVO);
     }
 }

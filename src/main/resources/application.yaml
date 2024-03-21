@@ -1,7 +1,7 @@
 spring:
     jackson:
         ## 格式为yyyy-MM-dd HH:mm:ss
-        date-format: yyyy-MM-dd
+        date-format: yyyy-MM-dd HH:mm:ss
         ## 定时区，解决8小时的时间差问题
         time-zone: GMT+8
     mvc:

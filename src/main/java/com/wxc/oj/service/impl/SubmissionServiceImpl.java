@@ -7,15 +7,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
-import com.wxc.oj.enums.SubmissionStatusEnum;
+import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.SubmissionVO;
-import com.wxc.oj.service.JudgeService;
+import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.mapper.SubmissionMapper;
@@ -41,6 +42,8 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
 
     @Resource
     private ProblemService problemService;
+    @Resource
+    private UserService userService;
 
     /**
      * 提交代码
@@ -72,7 +75,7 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         submission.setSourceCode(submissionAddRequest.getSourceCode());
         submission.setLanguage(submissionAddRequest.getLanguage());
         // 初始化判题状态为 waiting
-        submission.setStatus(SubmissionStatusEnum.WAITING.getValue());
+        submission.setStatus(SubmissionStatus.PENDING.getStatus());
         submission.setSubmissionResult("{}");
         // 保存到数据库
         boolean save = this.save(submission);
@@ -114,12 +117,22 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         return queryWrapper.lambda();
     }
     /**
-     *
+     * 从数据库中得submission
+     * 进行数据脱敏和数据库id扩展
      */
     @Override
     public SubmissionVO getSubmissionVO(Submission submission) {
         // 将entity转为vo
         SubmissionVO submissionVO = SubmissionVO.objToVo(submission);
+        // 设置submission的题目具体信息
+        Problem byId = problemService.getById(submissionVO.getProblemId());
+        ProblemVO problemVO = ProblemVO.objToVo(byId);
+        submissionVO.setProblemVO(problemVO);
+        // 设置submission的提交User信息
+        User user = userService.getById(submissionVO.getUserId());
+        UserVO userVO = UserVO.objToVo(user);
+        submissionVO.setUserVO(userVO);
+        submissionVO.setProblemVO(problemVO);
         // 先不进行实际脱敏
         return submissionVO;
     }

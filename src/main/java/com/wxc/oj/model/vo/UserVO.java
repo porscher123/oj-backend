@@ -2,7 +2,14 @@ package com.wxc.oj.model.vo;
 
 import java.io.Serializable;
 import java.util.Date;
+
+import cn.hutool.json.JSONUtil;
+import com.wxc.oj.enums.submission.SubmissionStatus;
+import com.wxc.oj.model.entity.Submission;
+import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.submission.SubmissionResult;
 import lombok.Data;
+import org.springframework.beans.BeanUtils;
 
 /**
  * 用户视图（脱敏）
@@ -44,4 +51,20 @@ public class UserVO implements Serializable {
     private Date createTime;
 
     private static final long serialVersionUID = 1L;
+
+
+    /**
+     * pojo -> vo
+     */
+    public static UserVO objToVo(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user, userVO);
+        userVO.setId(null);
+        userVO.setUserRole(null);
+        userVO.setCreateTime(null);
+        return userVO;
+    }
 }

@@ -15,6 +15,13 @@ public class JudgeCaseResult {
     /**
      * 这次提交的通过情况
      */
+    /**
+     * 后续测试点展示
+     */
+    private String input;
+    private String output;
+    private String ans;
+
     private String message;
     /**
      * 这次提交的时间消耗

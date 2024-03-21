@@ -1,27 +1,32 @@
 package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
+import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.model.entity.Submission;
-import com.wxc.oj.model.judge.JudgeInfo;
 import com.wxc.oj.model.submission.SubmissionResult;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
 /**
  * 返回给前端的关于Problem的数据封装类
  */
 @Data
-
 public class SubmissionVO implements Serializable {
     private static final long serialVersionUID = 1L;
     private Long id;
     private Long userId;
     private Long problemId;
     private String sourceCode;
+
+
+    private Long totalTime;
+
+    private Long totalMemory;
+
+    private Integer codeLength;
     /**
      * 返回多组测试用例的判题信息
      */
@@ -32,6 +37,8 @@ public class SubmissionVO implements Serializable {
      * waiting, ...
      */
     private Integer status;
+
+    private String submissionStatus;
     /**
      * 得分: AC的样例占总样例的比例
      */
@@ -70,8 +77,12 @@ public class SubmissionVO implements Serializable {
         SubmissionVO submissionVO = new SubmissionVO();
         BeanUtils.copyProperties(submission, submissionVO);
 
-        String judgeInfoString = submission.getSubmissionResult();
-        SubmissionResult submissionResult1 = JSONUtil.toBean(judgeInfoString, SubmissionResult.class);
+        String submissionResultStr = submission.getSubmissionResult();
+        SubmissionResult submissionResult1 = JSONUtil.toBean(submissionResultStr, SubmissionResult.class);
+        Integer status1 = submission.getStatus();
+        String typeByStatus = SubmissionStatus.getTypeByStatus(status1);
+        submissionVO.setSubmissionStatus(typeByStatus);
+        submissionVO.setSubmissionStatus(SubmissionStatus.getTypeByStatus(submission.getStatus()));
         submissionVO.setSubmissionResult(submissionResult1);
         return submissionVO;
     }

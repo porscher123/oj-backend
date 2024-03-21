@@ -25,11 +25,7 @@ public enum JudgeResultEnum {
     TIME_LIMIT_EXCEEDED ("TIME_LIMIT_EXCEEDED"),
     PRESENTATION_ERROR("PRESENTATION_ERROR"),
     OUTPUT_LIMIT_EXCEEDED("OUTPUT_LIMIT_EXCEEDED"),
-    RUNTIME_ERROR("RUNTIME_ERROR"),
-    WAITING("accepted"),
-    DANGEROUS_OPERATION("DANGEROUS_OPERATION"),
-    SYSTEM_ERROR("SYSTEM_ERROR");
-
+    RUNTIME_ERROR("RUNTIME_ERROR");
     private String value;
     JudgeResultEnum(String value) {
         this.value = value;

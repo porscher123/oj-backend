@@ -6,7 +6,6 @@ import cn.hutool.json.JSONUtil;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.LanguageConfigs;
 import com.wxc.oj.enums.JudgeResultEnum;
-import com.wxc.oj.enums.SubmissionStatusEnum;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
@@ -25,6 +24,7 @@ import com.wxc.oj.sandbox.model.LanguageConfig;
 import com.wxc.oj.service.JudgeService;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.SubmissionService;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -70,6 +70,11 @@ public class JudgeServiceImpl implements JudgeService {
 
         // 封装传入代码沙箱的请求
         String sourceCode = submission.getSourceCode();
+        SubmissionResult submissionResult = new SubmissionResult();
+
+        byte[] bytes = sourceCode.getBytes();
+        int codeLength = bytes.length;
+        submissionResult.setCodeLength(codeLength);
 
         // 编译代码
         SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
@@ -82,8 +87,7 @@ public class JudgeServiceImpl implements JudgeService {
             log.info(sandBoxResponse.getStatus());
             log.info(sandBoxResponse.getError());
             // 返回编译错误
-            SubmissionResult submissionResult = new SubmissionResult();
-            submissionResult.setMessage(SubmissionStatus.COMPILE_ERROR.getName());
+            submissionResult.setStatus(SubmissionStatus.COMPILE_ERROR.getValue());
             submissionResult.setScore(0);
             return submissionResult;
         }
@@ -99,13 +103,19 @@ public class JudgeServiceImpl implements JudgeService {
         // 读取判题配置
         String judgeConfigStr = problem.getJudgeConfig();
         JudgeConfig judgeConfig = JSONUtil.toBean(judgeConfigStr, JudgeConfig.class);
+        Long totalTime = 0L;
+        Long memoryUsed = 0L;
+
         // 测试每组样例, 获得输出
         for (String input : inputs) {
             SandBoxResponse runResponse = runCode(exeId, input, LanguageConfigs.CPP);
             String status = runResponse.getStatus();
             JudgeCaseResult judgeCaseResult = new JudgeCaseResult();
+            judgeCaseResult.setInput(input);
+            judgeCaseResult.setOutput(runResponse.getFiles().getStdout());
             Long timeCost = runResponse.getRunTime() / 1000_000;
-            Long memoryUsed = runResponse.getMemory();
+            totalTime += timeCost;
+            memoryUsed = runResponse.getMemory();
             if (memoryUsed / 1024 / 1024 == 0) {
                 log.info("mem : " + memoryUsed + "KB");
                 judgeCaseResult.setMemoryUsed(memoryUsed / 1024  + "KB");
@@ -132,8 +142,9 @@ public class JudgeServiceImpl implements JudgeService {
             }
             judgeCaseResults.add(judgeCaseResult);
         }
-
-
+        // 设置程序的总运行
+        submissionResult.setMemoryUsed(memoryUsed);
+        submissionResult.setTotalTime(totalTime);
 
         log.info("inputs: "+ inputs);
         log.info("outputs: " + outputs);
@@ -142,6 +153,8 @@ public class JudgeServiceImpl implements JudgeService {
         log.info("ans: " + answerOutputs);
         // 判断输出样例和答案对比
         for (int i = 0; i < answerOutputs.size(); i++) {
+            JudgeCaseResult judgeCaseResult1 = judgeCaseResults.get(i);
+            judgeCaseResult1.setAns(answerOutputs.get(i));
             // 出去首位空格
             outputs.get(i).trim();
             if (!answerOutputs.get(i).equals(outputs.get(i))) {
@@ -152,22 +165,23 @@ public class JudgeServiceImpl implements JudgeService {
 
 
 
-        SubmissionResult submissionResult = new SubmissionResult();
         // 计算得分
         int score = getScore(judgeCaseResults);
+
         if (exeId != null) {
             sandboxRun.delFile(exeId);
         }
         submissionResult.setScore(score);
-        submissionResult.setMessage("ok");
         submissionResult.setJudgeCaseResults(judgeCaseResults);
 
         // 判题结束后, 修改数据库中的submission的信息
         submissionUpd.setId(submissionId);
-        submissionUpd.setStatus(SubmissionStatusEnum.SUCCEED.getValue());
+        submissionUpd.setStatus(SubmissionStatus.JUDGED.getStatus());
         submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
 
-
+        if (score == 100) {
+            submissionResult.setStatus(JudgeResultEnum.ACCEPTED.getValue());
+        }
         boolean updated = submissionService.updateById(submissionUpd);
         if (!updated) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
@@ -208,7 +222,7 @@ public class JudgeServiceImpl implements JudgeService {
 
         }
         SubmissionResult submissionResult = new SubmissionResult();
-        submissionResult.setMessage("编程语言不支持");
+        submissionResult.setStatus("编程语言不支持");
         return submissionResult;
     }
 
