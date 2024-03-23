@@ -1,4 +1,4 @@
-package com.wxc.oj.service.impl;
+package com.wxc.oj.judger.service.Impl;
 
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
@@ -9,6 +9,8 @@ import com.wxc.oj.enums.JudgeResultEnum;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.judger.service.JudgeService;
+import com.wxc.oj.model.QueueMessage;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.judge.JudgeCase;
@@ -21,12 +23,12 @@ import com.wxc.oj.sandbox.dto.SandBoxRequest;
 import com.wxc.oj.sandbox.dto.SandBoxResponse;
 import com.wxc.oj.sandbox.enums.SandBoxResponseStatus;
 import com.wxc.oj.sandbox.model.LanguageConfig;
-import com.wxc.oj.service.JudgeService;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.SubmissionService;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,6 +41,11 @@ import java.util.stream.Collectors;
 /**
  * todo:
  *  一个样例是用一个字符串还是一组字符串呢???
+ *  {
+ *   "problemId": 1763440748296044545,
+ *   "sourceCode": "",
+ *   "language": "cpp"
+ * }
  */
 @Service
 @Slf4j(topic = "✔✔✔✔JudgeServiceImpl✔✔✔✔")
@@ -57,10 +64,18 @@ public class JudgeServiceImpl implements JudgeService {
 
     public static final Long CPU_LIMIT = 10000000000L;
     public static final Long MEMORY_LIMIT = 104857600L;
+
+    public static final String QUEUE = "submission";
     public static final Integer PROC_LIMIT = 50;
 
+    @RabbitListener(queues = QUEUE, messageConverter = "jacksonConverter")
+    public void listenSubmission(QueueMessage message) throws IOException {
+        Long id = message.getId();
+        log.info("接收到的id: " + id);
+        doJudge(id);
+    }
 
-    public SubmissionResult cppJudge(Submission submission, Problem problem) throws IOException {
+    public void cppJudge(Submission submission, Problem problem) throws IOException {
         Long submissionId = submission.getId();
         // 更新数据库中的submission的status字段, 以便前端即时查看到submission的状态
         Submission submissionUpd = new Submission();
@@ -89,7 +104,12 @@ public class JudgeServiceImpl implements JudgeService {
             // 返回编译错误
             submissionResult.setStatus(SubmissionStatus.COMPILE_ERROR.getValue());
             submissionResult.setScore(0);
-            return submissionResult;
+            submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
+            boolean updated = submissionService.updateById(submissionUpd);
+            if (!updated) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
+            }
+            return;
         }
         log.info("编译成功");
         String exeId = fileIds.get("main");
@@ -186,7 +206,6 @@ public class JudgeServiceImpl implements JudgeService {
         if (!updated) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
         }
-        return submissionResult;
     }
 
     /**
@@ -195,7 +214,7 @@ public class JudgeServiceImpl implements JudgeService {
      * 根据不同得语言选择不同得判题逻辑
      */
     @Override
-    public SubmissionResult doJudge(Long submissionId) throws IOException {
+    public void doJudge(Long submissionId) throws IOException {
         Submission submission = submissionService.getById(submissionId);
         // 获取提交
         if (submission == null) {
@@ -213,7 +232,7 @@ public class JudgeServiceImpl implements JudgeService {
 
 
         if (language.equals(SubmissionLanguageEnum.CPP.getValue())) {
-            return cppJudge(submission, problem);
+            cppJudge(submission, problem);
         } else if (language.equals(SubmissionLanguageEnum.CPP.getValue())) {
 
         } else if (language.equals(SubmissionLanguageEnum.CPP.getValue())) {
@@ -223,7 +242,6 @@ public class JudgeServiceImpl implements JudgeService {
         }
         SubmissionResult submissionResult = new SubmissionResult();
         submissionResult.setStatus("编程语言不支持");
-        return submissionResult;
     }
 
 
@@ -349,4 +367,6 @@ public class JudgeServiceImpl implements JudgeService {
         int score = accepted * 100 / total ;
         return score;
     }
+
+
 }

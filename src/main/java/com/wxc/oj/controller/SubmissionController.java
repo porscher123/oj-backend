@@ -1,42 +1,32 @@
 package com.wxc.oj.controller;
 
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.constant.UserConstant;
 import com.wxc.oj.exception.BusinessException;
-import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.judger.service.JudgeService;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
-import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.entity.User;
-import com.wxc.oj.model.judge.JudgeInfo;
-import com.wxc.oj.model.submission.SubmissionResult;
-import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.SubmissionVO;
-import com.wxc.oj.service.JudgeService;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.service.UserService;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.aspectj.lang.annotation.Before;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 @RestController
 @RequestMapping("submission")
-@Slf4j(topic = "SubmissionController")
+@Slf4j(topic = "😊😊😊😊")
 public class SubmissionController {
 
 
@@ -48,8 +38,6 @@ public class SubmissionController {
     private UserService userService;
 
 
-    @Resource
-    private JudgeService judgeService;
 
 
     /**
@@ -66,9 +54,7 @@ public class SubmissionController {
         User loginUser = userService.getLoginUser(request);
         // 执行插入submission操作
         Submission submission = submissionService.submitCode(submissionAddRequest, loginUser);
-        // todo: 执行判题服务
-        SubmissionResult submissionResult = judgeService.doJudge(submission.getId());
-        return ResultUtils.success(submissionResult);
+        return ResultUtils.success(submission);
     }
 
     /**

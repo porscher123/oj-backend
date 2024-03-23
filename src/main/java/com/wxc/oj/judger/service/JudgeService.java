@@ -1,4 +1,4 @@
-package com.wxc.oj.service;
+package com.wxc.oj.judger.service;
 
 import com.wxc.oj.model.judge.JudgeCaseResult;
 import com.wxc.oj.model.submission.SubmissionResult;
@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 public interface JudgeService {
-    SubmissionResult doJudge(Long submissionId) throws IOException;
+    void doJudge(Long submissionId) throws IOException;
 
 
 

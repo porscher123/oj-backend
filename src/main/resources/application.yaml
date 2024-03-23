@@ -1,4 +1,10 @@
 spring:
+    # rabbitmq
+    rabbitmq:
+        addresses: 192.168.59.129
+        username: admin
+        password: wxc123...
+        virtual-host: /oj
     jackson:
         ## 格式为yyyy-MM-dd HH:mm:ss
         date-format: yyyy-MM-dd HH:mm:ss
@@ -50,7 +56,6 @@ spring:
 #        root: debug
 
 
-
 mybatis-plus:
     configuration:
         # 配置MyBatis日志
@@ -77,4 +82,5 @@ server:
             timeout: 8000
     port: 8080
     address: 0.0.0.0
+
 

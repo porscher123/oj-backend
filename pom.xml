@@ -17,6 +17,11 @@
         <java.version>17</java.version>
     </properties>
     <dependencies>
+        <!--    rocketmq    -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
         <!-- 与Docker服务器的守护进程通信       -->
         <dependency>
             <groupId>com.github.docker-java</groupId>

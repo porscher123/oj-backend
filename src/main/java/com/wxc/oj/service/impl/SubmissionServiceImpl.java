@@ -1,5 +1,6 @@
 package com.wxc.oj.service.impl;
 
+import cn.hutool.json.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -9,6 +10,8 @@ import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.mapper.SubmissionMapper;
+import com.wxc.oj.model.QueueMessage;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.entity.Problem;
@@ -19,12 +22,13 @@ import com.wxc.oj.model.vo.SubmissionVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.SubmissionService;
-import com.wxc.oj.mapper.SubmissionMapper;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,9 +40,15 @@ import java.util.stream.Collectors;
 * @createDate 2024-02-28 10:33:17
 */
 @Service
+@Slf4j(topic = "SubmissionServiceImpl")
 public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submission> implements SubmissionService {
 
 
+    @Resource
+    private RabbitTemplate rabbitTemplate;
+
+    public static final String ROUTING_KEY = "submission";
+    public static final String EXCHANGE = "amq.direct";
 
     @Resource
     private ProblemService problemService;
@@ -47,6 +57,7 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
 
     /**
      * 提交代码
+     * 并生成submission到rocketmq
      * @param submissionAddRequest
      * @param loginUser
      * @return 插入的submission的id
@@ -83,7 +94,16 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
         Submission submission1 = this.getById(submission.getId());
-        // 返回submission的id
+        // 发送到rocketmq
+        Long id = submission1.getId();
+        if (id != null) {
+            QueueMessage queueMessage = new QueueMessage();
+            queueMessage.setId(id);
+            log.info("发送submissionId: " + id);
+            //使用convertAndSend方法一步到位，参数基本和之前是一样的
+            //最后一个消息本体可以是Object类型，真是大大的方便
+            rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, queueMessage);
+        }
         return submission1;
     }
 
