@@ -1,7 +1,11 @@
 spring:
+    servlet:
+      multipart:
+          max-request-size: 20MB
+          max-file-size: 20MB
     # rabbitmq
     rabbitmq:
-        addresses: 192.168.59.129
+        addresses: 121.40.29.39
         username: admin
         password: wxc123...
         virtual-host: /oj
@@ -11,7 +15,7 @@ spring:
         ## 定时区，解决8小时的时间差问题
         time-zone: GMT+8
     mvc:
-        pathmatch:
+        path-match:
             # 配置策略
             matching-strategy: ant-path-matcher
     datasource:
@@ -77,6 +81,8 @@ jwt:
         tokenExpiration: 86400000 # 有效时间ms
         tokenSignKey: headline123456 # 签名密钥
 server:
+    tomcat:
+        max-http-form-post-size: 20MB
     reactive:
         session:
             timeout: 8000

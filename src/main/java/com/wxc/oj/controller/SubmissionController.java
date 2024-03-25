@@ -1,6 +1,8 @@
 package com.wxc.oj.controller;
 
 
+import cn.hutool.core.net.LocalPortGenerater;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.common.BaseResponse;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("submission")
@@ -85,6 +88,17 @@ public class SubmissionController {
         submissionVOS.add(submissionVO);
         Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(page);
         return ResultUtils.success(submissionVOPage);
+    }
+    /**
+     * 分页获取特定用户的submission
+     */
+    @GetMapping("/user/page")
+    public BaseResponse getSubmissionPageByUserId(Long userId, Long problemId) {
+        LambdaQueryWrapper<Submission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Submission::getUserId, userId)
+                .eq(Submission::getProblemId, problemId);
+        List<Submission> list = submissionService.list(queryWrapper);
+        return ResultUtils.success(list);
     }
     @GetMapping("/get")
     public BaseResponse getSubmission(Long id) {

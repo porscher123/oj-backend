@@ -1,5 +1,6 @@
 package com.wxc.oj.judger.service.Impl;
 
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -31,7 +32,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -62,8 +63,14 @@ public class JudgeServiceImpl implements JudgeService {
     @Resource
     private ProblemService problemService;
 
+    /**
+     * 时间限制10s
+     */
     public static final Long CPU_LIMIT = 10000000000L;
-    public static final Long MEMORY_LIMIT = 104857600L;
+    /**
+     * 内存限制512MB
+     */
+    public static final Long MEMORY_LIMIT = 536870912L;
 
     public static final String QUEUE = "submission";
     public static final Integer PROC_LIMIT = 50;
@@ -75,6 +82,56 @@ public class JudgeServiceImpl implements JudgeService {
         doJudge(id);
     }
 
+
+    /**
+     * 对比连个文件的字符串是否相对
+     * @param a
+     * @param b
+     * @return
+     * @throws IOException
+     */
+    private boolean checker(String a, String b) throws IOException {
+        log.info("🚛🚛🚛🚛checking🚛🚛🚛🚛");
+        FileWriter fileWriter = new FileWriter("a");
+        FileWriter fileWriter1 = new FileWriter("b");
+        fileWriter.write(a);
+        fileWriter.close();
+        fileWriter1.write(b);
+        fileWriter1.close();
+
+
+
+        BufferedReader readerA = new BufferedReader(new FileReader("a"));
+        BufferedReader readerB = new BufferedReader(new FileReader("b"));
+        String lineA = null;
+        String lineB = null;
+        while ((lineA = readerA.readLine()) != null && (lineB = readerB.readLine()) != null) {
+            log.info("====" + lineA);
+            log.info("====" +lineB);
+            if (lineA == null || lineB == null) {
+                readerA.close();
+                readerB.close();
+                return false;
+            }
+
+            lineA.trim();
+            lineB.trim();
+            if (!lineA.equals(lineB)) {
+                readerA.close();
+                readerB.close();
+                return false;
+            }
+        }
+
+        readerA.close();
+        readerB.close();
+        boolean del = FileUtil.del("a");
+        boolean del1 = FileUtil.del("b");
+        if (!del || !del1) {
+            throw new IOException("对比文件删除失败");
+        }
+        return true;
+    }
     public void cppJudge(Submission submission, Problem problem) throws IOException {
         Long submissionId = submission.getId();
         // 更新数据库中的submission的status字段, 以便前端即时查看到submission的状态
@@ -103,7 +160,6 @@ public class JudgeServiceImpl implements JudgeService {
             log.info(sandBoxResponse.getError());
             // 返回编译错误
             submissionResult.setStatus(SubmissionStatus.COMPILE_ERROR.getValue());
-            submissionResult.setScore(0);
             submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
             boolean updated = submissionService.updateById(submissionUpd);
             if (!updated) {
@@ -173,14 +229,20 @@ public class JudgeServiceImpl implements JudgeService {
         log.info("ans: " + answerOutputs);
         // 判断输出样例和答案对比
         for (int i = 0; i < answerOutputs.size(); i++) {
-            JudgeCaseResult judgeCaseResult1 = judgeCaseResults.get(i);
-            judgeCaseResult1.setAns(answerOutputs.get(i));
+            JudgeCaseResult judgeCaseResult = judgeCaseResults.get(i);
+            judgeCaseResult.setAns(answerOutputs.get(i));
             // 出去首位空格
-            outputs.get(i).trim();
-            if (!answerOutputs.get(i).equals(outputs.get(i))) {
-                JudgeCaseResult judgeCaseResult = judgeCaseResults.get(i);
+//            outputs.get(i).trim();
+//            if (!answerOutputs.get(i).equals(outputs.get(i))) {
+//                judgeCaseResult.setMessage(JudgeResultEnum.WRONG_ANSWER.getValue());
+//            }
+            boolean checkerResult = checker(outputs.get(i), answerOutputs.get(i));
+            if (checkerResult == false) {
                 judgeCaseResult.setMessage(JudgeResultEnum.WRONG_ANSWER.getValue());
+            } else {
+                judgeCaseResult.setMessage(JudgeResultEnum.ACCEPTED.getValue());
             }
+
         }
 
 
@@ -197,11 +259,12 @@ public class JudgeServiceImpl implements JudgeService {
         // 判题结束后, 修改数据库中的submission的信息
         submissionUpd.setId(submissionId);
         submissionUpd.setStatus(SubmissionStatus.JUDGED.getStatus());
-        submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
-
         if (score == 100) {
             submissionResult.setStatus(JudgeResultEnum.ACCEPTED.getValue());
+        } else {
+            submissionResult.setStatus(JudgeResultEnum.WRONG_ANSWER.getValue());
         }
+        submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
         boolean updated = submissionService.updateById(submissionUpd);
         if (!updated) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
@@ -311,8 +374,8 @@ public class JudgeServiceImpl implements JudgeService {
         // files
         JSONArray files = new JSONArray();
         files.add(new JSONObject().set("content",""));
-        files.add(new JSONObject().set("name","stdout").set("max", 10240));
-        files.add(new JSONObject().set("name","stderr").set("max", 10240));
+        files.add(new JSONObject().set("name","stdout").set("max", 64 * 1024 * 1024));
+        files.add(new JSONObject().set("name","stderr").set("max", 64 * 1024 * 1024));
         cmd.setFiles(files);
         // limit
         cmd.setCpuLimit(CPU_LIMIT);
@@ -329,7 +392,7 @@ public class JudgeServiceImpl implements JudgeService {
         copyIn.set(languageConfig.getSourceFileName(), new JSONObject().set("content", sourceCode));
         cmd.setCopyIn(copyIn);
         SandBoxRequest sandBoxRequest = new SandBoxRequest();
-
+        cmd.setStrictMemoryLimit(true);
         List<Cmd> cmds = Arrays.asList(cmd);
         sandBoxRequest.setCmd(cmds);
 

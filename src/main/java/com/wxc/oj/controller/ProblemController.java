@@ -21,12 +21,29 @@ import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
+import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.RequestContext;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.tomcat.util.http.fileupload.disk.DiskFileItemFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
 
@@ -35,7 +52,7 @@ import static org.springframework.beans.BeanUtils.copyProperties;
  */
 @RestController
 @RequestMapping("problem")
-@Slf4j
+@Slf4j(topic = "ProblemController🛴🛴🛴🛴🛴🛴")
 public class ProblemController {
 
     @Autowired
@@ -45,6 +62,34 @@ public class ProblemController {
     private UserService userService;
 
 
+    /**
+     * 实现了接收一个文件到服务端
+     * todo:
+     *  接收一组输入输出样例, 保存到数据库
+     * @param file
+     * @throws Exception
+     */
+
+    @PostMapping("uploadCase")
+    public void getCaseLoad(MultipartFile file) throws Exception {
+        log.info("file here");
+//        log.info(file.toString());
+        File dir = new File("data");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        int tot = 0;
+        file.transferTo(new File(dir.getAbsolutePath() + File.separator + file.getOriginalFilename()));
+//        InputStream inputStream = file.getInputStream();
+
+//        String s = new String();
+//        log.info(s);
+        String filePath = dir.getAbsolutePath() + File.separator + file.getOriginalFilename();
+
+        String content = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
+
+        log.info("====" + content);
+    }
 
     /**
      * 创建题目
@@ -52,7 +97,7 @@ public class ProblemController {
     @PostMapping("add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Problem> addProblem(@RequestBody ProblemAddRequest problemAddRequest,
-                                   HttpServletRequest request) {
+                                            HttpServletRequest request) {
         if (problemAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -93,7 +138,7 @@ public class ProblemController {
      */
     @PostMapping("delete")
     public BaseResponse deleteProblem(@RequestBody DeleteRequest deleteRequest,
-                                    HttpServletRequest request) {
+                                      HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -164,6 +209,7 @@ public class ProblemController {
         }
         return ResultUtils.success(problemService.getProblemVO(problem));
     }
+
     /**
      * 根据 id 获取题目
      * GET方法 不脱敏
@@ -192,7 +238,7 @@ public class ProblemController {
     public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
-        System.out.println("***************" + current + "       " +size);
+        System.out.println("***************" + current + "       " + size);
         Page<Problem> problemPage = problemService.page(new Page<>(current, size),
                 problemService.getQueryWrapper(problemQueryRequest));
         long total = problemPage.getTotal();
@@ -203,12 +249,13 @@ public class ProblemController {
     /**
      * 分页获取列表（封装类）
      * 展示用户可见的部分(普通用户使用)
+     *
      * @param request
      * @return
      */
     @PostMapping("/list/page/vo")
     public BaseResponse listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
-            HttpServletRequest request) {
+                                            HttpServletRequest request) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
         // 限制爬虫
@@ -220,13 +267,14 @@ public class ProblemController {
 
     /**
      * 分页获取当前用户创建的资源列表
+     *
      * @param
      * @param request
      * @return
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<ProblemVO>> listMyProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
-            HttpServletRequest request) {
+                                                               HttpServletRequest request) {
         if (problemQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -240,7 +288,6 @@ public class ProblemController {
                 problemService.getQueryWrapper(problemQueryRequest));
         return ResultUtils.success(problemService.getProblemVOPage(ProblemPage));
     }
-
 
 
     /**

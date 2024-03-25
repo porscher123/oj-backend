@@ -67,8 +67,10 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         if (submissionAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        log.info(submissionAddRequest.toString());
         // 检查编程语言是否存在
         String language = submissionAddRequest.getLanguage();
+        log.info("language = " + language);
         List<String> submissionLanguages = SubmissionLanguageEnum.getValues();
         if (!submissionLanguages.contains(language)) {
             throw new BusinessException(ErrorCode.LANGUAGE_NOT_SUPPORTED);
