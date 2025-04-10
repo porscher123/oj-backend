@@ -88,7 +88,7 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
      * contest在状态1的操作
      * 从timePublish队列收到消息后, 再次发送一个消息到延迟交换机
      * 延迟duration后转发到timeFinish队列进行结束处理
-     * @param contest
+     * @param
      * @return
      */
     @RabbitListener(queues = "timePublish", messageConverter = "jacksonConverter")
@@ -123,7 +123,7 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
     /**
      * 从timeFinish队列收到消息
      * 修改消息体中指定的id对应的contest的状态为2
-     * @param contest
+     * @param
      * @return
      */
     @RabbitListener(queues = "timeFinish", messageConverter = "jacksonConverter")
