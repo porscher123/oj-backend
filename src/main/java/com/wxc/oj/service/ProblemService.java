@@ -2,11 +2,12 @@ package com.wxc.oj.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.entity.Problem;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wxc.oj.model.vo.ProblemVO;
-import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.List;
 
 /**
 * @author 王新超
@@ -39,6 +40,8 @@ public interface ProblemService extends IService<Problem> {
      * @return
      */
     ProblemVO getProblemVO(Problem post);
+
+    List<ProblemVO> getProblemVO(List<Problem> problemList);
 
     /**
      * 分页获取帖子封装

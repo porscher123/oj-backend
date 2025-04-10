@@ -3,6 +3,8 @@ package com.wxc.oj.enums;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.apache.commons.lang3.ObjectUtils;
 
 /**
@@ -10,15 +12,14 @@ import org.apache.commons.lang3.ObjectUtils;
  */
 public enum UserRoleEnum {
 
-    USER("用户", "user"),
-    ADMIN("管理员", "admin"),
-    BAN("被封号", "ban");
+    USER("user", 0),
+    ADMIN("admin", 1),
+    BAN("banned", 2);
 
     private final String text;
+    private final Integer value;
 
-    private final String value;
-
-    UserRoleEnum(String text, String value) {
+    UserRoleEnum(String text, Integer value) {
         this.text = text;
         this.value = value;
     }
@@ -28,9 +29,9 @@ public enum UserRoleEnum {
      *
      * @return
      */
-    public static List<String> getValues() {
-        return Arrays.stream(values()).map(item -> item.value).collect(Collectors.toList());
-    }
+//    public static List<String> getValues() {
+//        return Arrays.stream(values()).map(item -> item.value).collect(Collectors.toList());
+//    }
 
     /**
      * 根据 value 获取枚举
@@ -38,10 +39,7 @@ public enum UserRoleEnum {
      * @param value
      * @return
      */
-    public static UserRoleEnum getEnumByValue(String value) {
-        if (ObjectUtils.isEmpty(value)) {
-            return null;
-        }
+    public static UserRoleEnum getEnumByValue(Integer value) {
         for (UserRoleEnum anEnum : UserRoleEnum.values()) {
             if (anEnum.value.equals(value)) {
                 return anEnum;
@@ -49,12 +47,14 @@ public enum UserRoleEnum {
         }
         return null;
     }
-
-    public String getValue() {
-        return value;
-    }
-
     public String getText() {
         return text;
     }
+    public Integer getValue() {
+        return value;
+    }
+
+//    public String getText() {
+//        return text;
+//    }
 }

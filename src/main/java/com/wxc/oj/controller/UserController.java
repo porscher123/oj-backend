@@ -1,32 +1,38 @@
 package com.wxc.oj.controller;
 
+import cn.hutool.core.io.resource.StringResource;
+import cn.hutool.json.JSONUtil;
+import cn.hutool.jwt.JWT;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.DeleteRequest;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.constant.UserConstant;
+import com.wxc.oj.dto.user.*;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
-import com.wxc.oj.model.dto.user.*;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
-import com.wxc.oj.utils.JwtHelper;
+import com.wxc.oj.utils.JwtUtils;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-import static com.wxc.oj.constant.UserConstant.USER_LOGIN_STATE;
+import static com.wxc.oj.enums.UserRoleEnum.ADMIN;
 import static com.wxc.oj.service.impl.UserServiceImpl.SALT;
 
 @RestController
@@ -34,10 +40,12 @@ import static com.wxc.oj.service.impl.UserServiceImpl.SALT;
 @Slf4j
 public class UserController {
 
-    @Autowired
+    @Resource
     private UserService userService;
-    @Autowired
-    private JwtHelper jwtHelper;
+
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 用户注册
@@ -68,7 +76,9 @@ public class UserController {
      * @return
      */
     @PostMapping("login")
-    public BaseResponse<UserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+    public BaseResponse<String> userLogin(@RequestBody UserLoginRequest userLoginRequest,
+                                          HttpServletRequest request,
+                                          HttpServletResponse response) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -77,19 +87,26 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        UserVO userVO = userService.userLogin(userAccount, userPassword, request);
-        return ResultUtils.success(userVO);
+        String token = userService.userLogin(userAccount, userPassword, request);
+//        response.put("token", jwtUtils.createToken(userVO.getId()));
+        response.setHeader("Authorization", "Bearer " + token);
+        return ResultUtils.success(token);
     }
 
 
-//    @PostMapping("logout")
-//    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
-//        if (request == null) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-//        }
-//        boolean result = userService.userLogout(request);
-//        return ResultUtils.success(result);
-//    }
+    /**
+     * 用户登出
+     * @param request
+     * @return
+     */
+    @PostMapping("logout")
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        boolean result = userService.userLogout(request);
+        if (!result) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "注销失败");
+        }
+        return ResultUtils.success(result);
+    }
 
     /**
      * 通过token获取当前登录用户
@@ -113,7 +130,7 @@ public class UserController {
      * @param userAddRequest
      */
     @PostMapping("add")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse addUser(@RequestBody UserAddRequest userAddRequest) {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -137,7 +154,7 @@ public class UserController {
      * @param deleteRequest
      */
     @PostMapping("delete")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse deleteUser(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -157,7 +174,7 @@ public class UserController {
      * @param id
      */
     @GetMapping("get")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse getUserById(long id) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -183,7 +200,7 @@ public class UserController {
      * 分页获取用户列表（仅管理员）
      */
     @PostMapping("/list/page")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse listUserByPage(@RequestBody UserQueryRequest userQueryRequest) {
         long current = userQueryRequest.getCurrent();
         long size = userQueryRequest.getPageSize();
@@ -217,7 +234,7 @@ public class UserController {
      * 更新用户仅管理员可更新
      */
     @PostMapping("update")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

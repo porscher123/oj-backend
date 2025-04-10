@@ -3,11 +3,7 @@ package com.wxc.oj.model.vo;
 import java.io.Serializable;
 import java.util.Date;
 
-import cn.hutool.json.JSONUtil;
-import com.wxc.oj.enums.submission.SubmissionStatus;
-import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.entity.User;
-import com.wxc.oj.model.submission.SubmissionResult;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 

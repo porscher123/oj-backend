@@ -2,12 +2,12 @@ package com.wxc.oj.advice;
 
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.ErrorCode;
+import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.entity.User;
-import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.commons.lang3.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -23,6 +23,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  */
 @Aspect
 @Component
+@Slf4j(topic = "AuthCheckAdvice🌹🌹🌹🌹🌹🌹🌹")
 public class AuthCheckAdvice {
 
     @Autowired
@@ -38,26 +39,23 @@ public class AuthCheckAdvice {
     @Around("@annotation(authCheck)")
     public Object doInterceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable {
         // 通过注解获取需要的权限
-        String mustRole = authCheck.mustRole();
+        Integer mustRole = authCheck.mustRole().getValue();
         RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
         // 获取当前请求
         HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
         // 当前登录用户
         User loginUser = userService.getLoginUser(request);
         // 必须有该权限才通过
-        if (StringUtils.isNotBlank(mustRole)) {
-            UserRoleEnum mustUserRoleEnum = UserRoleEnum.getEnumByValue(mustRole);
-            if (mustUserRoleEnum == null) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-            }
-            String userRole = loginUser.getUserRole();
+        if (mustRole != null) {
+            Integer userRole = loginUser.getUserRole();
             // 如果被封号，直接拒绝
-            if (UserRoleEnum.BAN.equals(mustUserRoleEnum)) {
+            if (UserRoleEnum.BAN.getValue() == mustRole) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
             // 必须有管理员权限
-            if (UserRoleEnum.ADMIN.equals(mustUserRoleEnum)) {
-                if (!mustRole.equals(userRole)) {
+            if (UserRoleEnum.ADMIN.getValue() == mustRole) {
+                if (mustRole != userRole) {
+                    log.info("oh no");
                     throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
                 }
             }

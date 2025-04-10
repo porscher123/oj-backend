@@ -8,24 +8,20 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.constant.Level;
 import com.wxc.oj.mapper.ProblemMapper;
-import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.UserVO;
-import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -64,7 +60,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         String tags = problem.getTags();
 //        String level = problem.getLevel();
         String solution = problem.getSolution();
-        String judgeCase = problem.getJudgeCase();
+//        String judgeCase = problem.getJudgeCase();
         String judgeConfig = problem.getJudgeConfig();
 
         // 校验题目难度是否合法
@@ -131,7 +127,29 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         problemVO.setUserVO(userVO);
         return problemVO;
     }
+    /**
+     * 生成要返回给前端的VO对象
+     * 进行了数据脱敏
+     * @param problem
+     * @return
+     */
+    @Override
+    public List<ProblemVO> getProblemVO(List<Problem> problemList) {
+        ArrayList<ProblemVO> problemVOList = new ArrayList<>();
+        for (Problem problem : problemList) {
+            ProblemVO problemVO = ProblemVO.objToVo(problem);
+            Long userId = problem.getUserId();
+            User user = null;
+            if (userId != null && userId > 0) {
+                user = userService.getById(userId);
+            }
+            UserVO userVO = userService.getUserVO(user);
+            problemVO.setUserVO(userVO);
 
+            problemVOList.add(problemVO);
+        }
+        return problemVOList;
+    }
     /**
      * 生成分页的VO对象
      * @param problemPage

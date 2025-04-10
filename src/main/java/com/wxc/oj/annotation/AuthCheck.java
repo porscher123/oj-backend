@@ -1,5 +1,8 @@
 package com.wxc.oj.annotation;
 
+import com.wxc.oj.constant.UserConstant;
+import com.wxc.oj.enums.UserRoleEnum;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -16,7 +19,7 @@ public @interface AuthCheck {
      * 必须有某个角色
      * @return
      */
-    String mustRole() default "";
+     UserRoleEnum mustRole() default UserRoleEnum.USER;
 
 }
 

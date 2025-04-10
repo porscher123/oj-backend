@@ -35,10 +35,8 @@ public class SandboxRun {
 
 
 
-    /**
-     * 云服务器里运行代码沙箱服务
-     */
-    private static final String SANDBOX_BASE_URL = "http://121.40.29.39:5050";
+    // ❗❗❗ 云服务器里运行代码沙箱服务
+    private static final String SANDBOX_BASE_URL = "http://123.249.0.179:5050";
     private static final String RUN_URI = "/run";
 
     public static final HashMap<String, Integer> RESULT_MAP_STATUS = new HashMap<>();
@@ -71,12 +69,17 @@ public class SandboxRun {
         HttpEntity<String> request1 = new HttpEntity<>(JSONUtil.toJsonStr(param), headers);
         ResponseEntity<String> postForEntity;
         postForEntity = restTemplate.postForEntity(SANDBOX_BASE_URL + RUN_URI, request1, String.class);
+
         JSONArray jsonArray = JSONUtil.parseArray(postForEntity.getBody());
         JSONObject jsonObject = (JSONObject)jsonArray.get(0);
         SandBoxResponse response = JSONUtil.toBean(jsonObject, SandBoxResponse.class);
         return response;
     }
 
+    /**
+     * /file POST 上传一个文件到文件存储，
+     * 返回一个文件 ID 用于提供给 /run 接口
+     */
 
 
     /**

@@ -61,3 +61,23 @@ create table if not exists submission
     index idx_user (user_id),
     index idx_problem (problem_id)
 ) collate = utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `contest_problem`;
+CREATE TABLE `contest_problem`
+(
+    `id`            bigint(20) unsigned                    NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `display_id`    varchar(255)                           NOT NULL COMMENT '该题目在比赛中的顺序id',
+    `cid`           bigint(20) unsigned                    NOT NULL COMMENT '比赛id',
+    `pid`           bigint(20) unsigned                    NOT NULL COMMENT '题目id',
+    `display_title` varchar(255)                           NOT NULL COMMENT '该题目在比赛中的标题，默认为原名字',
+    `color`         varchar(255) DEFAULT NULL COMMENT '气球颜色',
+    create_time     datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
+    update_time     datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    is_delete       tinyint      default 0                 not null comment '是否删除',
+    PRIMARY KEY (`id`, `cid`, `pid`),
+    UNIQUE KEY `display_id` (`display_id`, `cid`, `pid`),
+    KEY `contest_problem_ibfk_1` (`cid`),
+    KEY `contest_problem_ibfk_2` (`pid`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1
+  DEFAULT CHARSET = utf8;

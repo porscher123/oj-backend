@@ -2,9 +2,8 @@ package com.wxc.oj.constant;
 
 /**
  * 用户常量
- *
- * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
- * @from <a href="https://yupi.icu">编程导航知识星球</a>
+ * @author wxc
+ * @date 2025年3月25日16点41分
  */
 public interface UserConstant {
 
@@ -18,17 +17,17 @@ public interface UserConstant {
     /**
      * 默认角色
      */
-    String DEFAULT_ROLE = "user";
+    Integer DEFAULT_ROLE = 0;
 
     /**
      * 管理员角色
      */
-    String ADMIN_ROLE = "admin";
+    Integer ADMIN_ROLE = 1;
 
     /**
      * 被封号
      */
-    String BAN_ROLE = "ban";
+    Integer BAN_ROLE = 2;
 
     // endregion
 }

@@ -1,5 +1,6 @@
 package com.wxc.oj.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -13,6 +14,7 @@ import java.util.Date;
 @TableName(value ="user")
 @Data
 public class User implements Serializable {
+
     @TableId
     private Long id;
 
@@ -28,7 +30,7 @@ public class User implements Serializable {
 
     private String userProfile;
 
-    private String userRole;
+    private Integer userRole;
 
     private Date createTime;
 

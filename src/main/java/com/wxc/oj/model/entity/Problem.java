@@ -44,7 +44,7 @@ public class Problem implements Serializable {
     /**
      * 测试用例
      */
-    private String judgeCase;
+//    private String judgeCase;
     /**
      * 测试配置
      */
@@ -61,14 +61,7 @@ public class Problem implements Serializable {
 
     private Integer isDelete;
 
-    /**
-     * 点赞数
-     */
-    private Integer thumbNum;
-    /**
-     * 收藏数
-     */
-    private Integer favorNum;
+    private Integer onlyContest;
 
     private static final long serialVersionUID = 1L;
 }

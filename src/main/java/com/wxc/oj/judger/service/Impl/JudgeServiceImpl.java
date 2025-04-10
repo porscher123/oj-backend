@@ -10,11 +10,12 @@ import com.wxc.oj.enums.JudgeResultEnum;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.judger.model.TestCase;
+import com.wxc.oj.judger.model.TestCases;
 import com.wxc.oj.judger.service.JudgeService;
-import com.wxc.oj.model.QueueMessage;
+import com.wxc.oj.queueMessage.SubmissionMessage;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
-import com.wxc.oj.model.judge.JudgeCase;
 import com.wxc.oj.model.judge.JudgeCaseResult;
 import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.submission.SubmissionResult;
@@ -28,7 +29,6 @@ import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.SubmissionService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * todo:
@@ -51,6 +50,10 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j(topic = "✔✔✔✔JudgeServiceImpl✔✔✔✔")
 public class JudgeServiceImpl implements JudgeService {
+
+    /**
+     * 用于访问resources/data/xxx/
+     */
 
 
     @Resource
@@ -73,66 +76,52 @@ public class JudgeServiceImpl implements JudgeService {
     public static final Long MEMORY_LIMIT = 536870912L;
 
     public static final String QUEUE = "submission";
+    public static final String DATA_PATH = "C:\\Users\\WangXinchao\\Desktop\\oj\\oj-backend\\src\\main\\resources\\data";
     public static final Integer PROC_LIMIT = 50;
 
     @RabbitListener(queues = QUEUE, messageConverter = "jacksonConverter")
-    public void listenSubmission(QueueMessage message) throws IOException {
+    public void listenSubmission(SubmissionMessage message) throws IOException {
         Long id = message.getId();
-        log.info("接收到的id: " + id);
+        log.info("🔆🔆🔆🔆🔆接收到的id: " + id);
         doJudge(id);
     }
 
 
+
+
     /**
-     * 对比连个文件的字符串是否相对
-     * @param a
-     * @param b
+     * 编译CPP文件, 返回代码沙箱保存的可执行文件的ID
+     * @param sourceCode
      * @return
      * @throws IOException
      */
-    private boolean checker(String a, String b) throws IOException {
-        log.info("🚛🚛🚛🚛checking🚛🚛🚛🚛");
-        FileWriter fileWriter = new FileWriter("a");
-        FileWriter fileWriter1 = new FileWriter("b");
-        fileWriter.write(a);
-        fileWriter.close();
-        fileWriter1.write(b);
-        fileWriter1.close();
-
-
-
-        BufferedReader readerA = new BufferedReader(new FileReader("a"));
-        BufferedReader readerB = new BufferedReader(new FileReader("b"));
-        String lineA = null;
-        String lineB = null;
-        while ((lineA = readerA.readLine()) != null && (lineB = readerB.readLine()) != null) {
-            log.info("====" + lineA);
-            log.info("====" +lineB);
-            if (lineA == null || lineB == null) {
-                readerA.close();
-                readerB.close();
-                return false;
-            }
-
-            lineA.trim();
-            lineB.trim();
-            if (!lineA.equals(lineB)) {
-                readerA.close();
-                readerB.close();
-                return false;
-            }
+    public String compileCppFile(String sourceCode) throws IOException {
+        SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
+        log.info(sandBoxResponse.toString());
+        // 获取返回得文件id
+        Map<String, String> fileIds = sandBoxResponse.getFileIds();
+        if (!sandBoxResponse.getStatus().equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
+            log.info("❗❗❗编译失败❗❗❗");
+//            log.info(sandBoxResponse.getStatus());
+//            log.info(sandBoxResponse.getError());
+            return null;
         }
-
-        readerA.close();
-        readerB.close();
-        boolean del = FileUtil.del("a");
-        boolean del1 = FileUtil.del("b");
-        if (!del || !del1) {
-            throw new IOException("对比文件删除失败");
-        }
-        return true;
+        log.info("编译成功");
+        String exeId = fileIds.get("main");
+//        log.info("可执行文件id = " + exeId);
+        return exeId;
     }
+
+
+    /**
+     * cppJudge
+     * @param submission
+     * @param problem
+     * @throws IOException
+     */
     public void cppJudge(Submission submission, Problem problem) throws IOException {
+        Long pid = problem.getId();
+
         Long submissionId = submission.getId();
         // 更新数据库中的submission的status字段, 以便前端即时查看到submission的状态
         Submission submissionUpd = new Submission();
@@ -148,16 +137,8 @@ public class JudgeServiceImpl implements JudgeService {
         int codeLength = bytes.length;
         submissionResult.setCodeLength(codeLength);
 
-        // 编译代码
-        SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
-        log.info(sandBoxResponse.toString());
-        // 获取返回得文件id
-        Map<String, String> fileIds = sandBoxResponse.getFileIds();
-
-        if (!sandBoxResponse.getStatus().equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
-            log.info("编译失败");
-            log.info(sandBoxResponse.getStatus());
-            log.info(sandBoxResponse.getError());
+        String exeId = compileCppFile(sourceCode);
+        if (exeId == null) {
             // 返回编译错误
             submissionResult.setStatus(SubmissionStatus.COMPILE_ERROR.getValue());
             submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
@@ -167,23 +148,70 @@ public class JudgeServiceImpl implements JudgeService {
             }
             return;
         }
-        log.info("编译成功");
-        String exeId = fileIds.get("main");
-        log.info("可执行文件id = " + exeId);
 
-        String judgeCaseStr = problem.getJudgeCase();
-        List<JudgeCase> judgeCaseList = JSONUtil.toList(judgeCaseStr, JudgeCase.class);
-        List<String> inputs = judgeCaseList.stream().map(JudgeCase::getInput).collect(Collectors.toList());
-        List<String> outputs = new ArrayList<>();
+
+        // 编译代码
+//        SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
+//        log.info(sandBoxResponse.toString());
+//
+//        // 获取返回得文件id
+//        Map<String, String> fileIds = sandBoxResponse.getFileIds();
+//
+//        if (!sandBoxResponse.getStatus().equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
+//            log.info("❗❗❗编译失败❗❗❗");
+//            log.info(sandBoxResponse.getStatus());
+//            log.info(sandBoxResponse.getError());
+//            // 返回编译错误
+//            submissionResult.setStatus(SubmissionStatus.COMPILE_ERROR.getValue());
+//            submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
+//            boolean updated = submissionService.updateById(submissionUpd);
+//            if (!updated) {
+//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
+//            }
+//            return;
+//        }
+//        log.info("编译成功");
+//        String exeId = fileIds.get("main");
+//        log.info("可执行文件id = " + exeId);
+
+//        String judgeCaseStr = problem.getJudgeCase();
+//        List<JudgeCase> judgeCaseList = JSONUtil.toList(judgeCaseStr, JudgeCase.class);
+//        List<String> inputs = judgeCaseList.stream().map(JudgeCase::getInput).collect(Collectors.toList());
+//        List<String> outputs = new ArrayList<>();
+
         List<JudgeCaseResult> judgeCaseResults = new ArrayList<>();
         // 读取判题配置
         String judgeConfigStr = problem.getJudgeConfig();
         JudgeConfig judgeConfig = JSONUtil.toBean(judgeConfigStr, JudgeConfig.class);
         Long totalTime = 0L;
         Long memoryUsed = 0L;
+        // 3.17
+        // 将config.json转为TestCases
+        String filePath = DATA_PATH + File.separator + pid + File.separator + "config.json";
+        String jsonStr = FileUtil.readUtf8String(filePath);
+        TestCases testCases = JSONUtil.toBean(jsonStr, TestCases.class);
+        List<TestCase> testCaseList = testCases.getCases();
 
-        // 测试每组样例, 获得输出
-        for (String input : inputs) {
+        // 计算得分
+        int accepptCase = 0;
+        int totalCase = testCaseList.size();
+
+        for (TestCase testCase : testCaseList) {
+            // 获取第index个测试样例的输入文件, 并转化为字符串
+            int index = testCase.getIndex();
+            String inputFile = DATA_PATH +File.separator + pid + File.separator + index + ".in";
+            System.out.println("📍📍📍inputFile = " + inputFile);
+            StringBuilder content = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+            String input = content.toString();
+            System.out.println("🚛🚛🚛🚛🚛🚛🚛🚛input = " + input);
+
+            // 运行第index个测试样例
             SandBoxResponse runResponse = runCode(exeId, input, LanguageConfigs.CPP);
             String status = runResponse.getStatus();
             JudgeCaseResult judgeCaseResult = new JudgeCaseResult();
@@ -204,7 +232,23 @@ public class JudgeServiceImpl implements JudgeService {
             judgeCaseResult.setMessage(JudgeResultEnum.ACCEPTED.getValue());
             // 执行成功
             if (status.equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
-                outputs.add(runResponse.getFiles().getStdout());
+                // 获取输出文件.ans
+                String output = runResponse.getFiles().getStdout();
+                FileWriter fileWriter = new FileWriter(DATA_PATH + File.separator + pid + File.separator + index + ".ans");
+                fileWriter.write(output);
+                fileWriter.flush();
+                // 比较.ans和.out文件
+                boolean accepted = checker(pid, index);
+                // 删除临时用于比对的.ans文件
+                deleteDotAnsFile(pid, index);
+                // 根据.out和.ans文件的比对结果, 更新judgeCaseResult
+                if (accepted) {
+                    judgeCaseResult.setMessage(JudgeResultEnum.ACCEPTED.getValue());
+                    accepptCase++;
+                } else {
+                    judgeCaseResult.setMessage(JudgeResultEnum.WRONG_ANSWER.getValue());
+                }
+
                 // 判断超时
                 if (timeCost > judgeConfig.getTimeLimit()) {
                     judgeCaseResult.setMessage(JudgeResultEnum.TIME_LIMIT_EXCEEDED.getValue());
@@ -218,59 +262,77 @@ public class JudgeServiceImpl implements JudgeService {
             }
             judgeCaseResults.add(judgeCaseResult);
         }
+
+
+        // 运行完样例后, 每组样例的运行时间, 内存占用都保存在judgeCaseResult
+        // 样例输出文件, 保存在data/xxx/1.ans中
+        // 比对data/xxx/中 1.out和1.ans的内容
         // 设置程序的总运行
         submissionResult.setMemoryUsed(memoryUsed);
         submissionResult.setTotalTime(totalTime);
 
-        log.info("inputs: "+ inputs);
-        log.info("outputs: " + outputs);
-        // 获取答案样例输出
-        List<String> answerOutputs = judgeCaseList.stream().map(JudgeCase::getOutput).collect(Collectors.toList());
-        log.info("ans: " + answerOutputs);
-        // 判断输出样例和答案对比
-        for (int i = 0; i < answerOutputs.size(); i++) {
-            JudgeCaseResult judgeCaseResult = judgeCaseResults.get(i);
-            judgeCaseResult.setAns(answerOutputs.get(i));
-            // 出去首位空格
-//            outputs.get(i).trim();
-//            if (!answerOutputs.get(i).equals(outputs.get(i))) {
-//                judgeCaseResult.setMessage(JudgeResultEnum.WRONG_ANSWER.getValue());
-//            }
-            boolean checkerResult = checker(outputs.get(i), answerOutputs.get(i));
-            if (checkerResult == false) {
-                judgeCaseResult.setMessage(JudgeResultEnum.WRONG_ANSWER.getValue());
-            } else {
-                judgeCaseResult.setMessage(JudgeResultEnum.ACCEPTED.getValue());
-            }
+        // 根据AC样例数与总样例数, 计算分数
+        int score = accepptCase * 100 / totalCase;
 
-        }
-
-
-
-        // 计算得分
-        int score = getScore(judgeCaseResults);
-
+        // 删除沙箱服务中保存的文件
         if (exeId != null) {
             sandboxRun.delFile(exeId);
         }
-        submissionResult.setScore(score);
-        submissionResult.setJudgeCaseResults(judgeCaseResults);
 
+        submissionResult.setScore(score);
+        // 提交结果中包含所有测试样例的测试结果
+        submissionResult.setJudgeCaseResults(judgeCaseResults);
         // 判题结束后, 修改数据库中的submission的信息
         submissionUpd.setId(submissionId);
         submissionUpd.setStatus(SubmissionStatus.JUDGED.getStatus());
-        if (score == 100) {
-            submissionResult.setStatus(JudgeResultEnum.ACCEPTED.getValue());
-        } else {
-            submissionResult.setStatus(JudgeResultEnum.WRONG_ANSWER.getValue());
-        }
         submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
+
+        // 更新submission表
         boolean updated = submissionService.updateById(submissionUpd);
         if (!updated) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
         }
     }
 
+    /**
+     * 删除为了比对生成的临时文件index.ans
+     * @param pid
+     * @param index
+     * @return
+     */
+    public boolean deleteDotAnsFile(Long pid, int index) {
+        String filePath = DATA_PATH + File.separator + pid + File.separator + index + ".ans";
+        File file = new File(filePath);
+        if (file.exists()) {
+            file.delete();
+            return true;
+        }
+        return false;
+    }
+    public boolean checker(Long pid, int index) throws IOException {
+        String stdoutFilePath = DATA_PATH + File.separator + pid + File.separator + index + ".out";
+        String useroutFilePath = DATA_PATH + File.separator + pid + File.separator + index + ".ans";
+        BufferedReader br1 = new BufferedReader(new FileReader(stdoutFilePath));
+        BufferedReader br2 = new BufferedReader(new FileReader(useroutFilePath));
+        String line1, line2;
+        int lineNumber = 0;
+        while ((line1 = br1.readLine()) != null && (line2 = br2.readLine()) != null) {
+            lineNumber++;
+            // 移除行首和行尾空格
+            line1 = line1.trim();
+            line2 = line2.trim();
+
+            if (!line1.equals(line2)) {
+                return false;
+            }
+        }
+        // 检查是否有剩余的行
+        if (br1.readLine() != null || br2.readLine() != null) {
+            return false;
+        }
+        return true;
+
+    }
     /**
      * @param submissionId
      * @return 返回每个测试用例的判题信息
@@ -326,6 +388,16 @@ public class JudgeServiceImpl implements JudgeService {
         cmd.setEnv(envs);
         // files
         JSONArray files = new JSONArray();
+        // 这里的JSON使用了content字段, 即使用了MemoryFile, 直接指定输入文件的内容
+        // interface MemoryFile {
+        //    content: string | Buffer; // 文件内容
+        //}
+        // 其实也可以指定本地的路径, 例如data/1763440748296044545/.in
+        // interface LocalFile {
+        //    src: string; // 文件绝对路径
+        //}
+        // 也可以指定到上传到服务器的文件id
+        // 这种得提前上传文件, 然后再指定文件id
         files.add(new JSONObject().set("content", input));
         files.add(new JSONObject().set("name","stdout").set("max", 10240));
         files.add(new JSONObject().set("name","stderr").set("max", 10240));

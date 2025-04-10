@@ -1,6 +1,5 @@
 package com.wxc.oj.service.impl;
 
-import cn.hutool.json.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,17 +10,17 @@ import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.SubmissionMapper;
-import com.wxc.oj.model.QueueMessage;
-import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
-import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
+import com.wxc.oj.queueMessage.SubmissionMessage;
+import com.wxc.oj.dto.submission.SubmissionAddRequest;
+import com.wxc.oj.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.Submission;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.SubmissionVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
-import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
@@ -48,6 +47,9 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
     private RabbitTemplate rabbitTemplate;
 
     public static final String ROUTING_KEY = "submission";
+    /**
+     * 默认的直连交换机
+     */
     public static final String EXCHANGE = "amq.direct";
 
     @Resource
@@ -58,6 +60,7 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
     /**
      * 提交代码
      * 并生成submission到rocketmq
+     * 因为用户提交代码后, 后端异步地调用判题服务, 所以此时给用户返回地判题结果为空
      * @param submissionAddRequest
      * @param loginUser
      * @return 插入的submission的id
@@ -99,14 +102,17 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         // 发送到rocketmq
         Long id = submission1.getId();
         if (id != null) {
-            QueueMessage queueMessage = new QueueMessage();
-            queueMessage.setId(id);
+            SubmissionMessage submissionMessage = new SubmissionMessage();
+            submissionMessage.setId(id);
             log.info("发送submissionId: " + id);
             //使用convertAndSend方法一步到位，参数基本和之前是一样的
             //最后一个消息本体可以是Object类型，真是大大的方便
-            rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, queueMessage);
+            // 发送消息到直连交换机, 指定路由键
+            rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, submissionMessage);
         }
-        return submission1;
+        // 异步化了, 所以返回的还是刚开始的初始的submission
+        Submission submission2 = this.getById(submission.getId());
+        return submission2;
     }
 
 

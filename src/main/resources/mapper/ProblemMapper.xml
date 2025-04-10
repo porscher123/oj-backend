@@ -13,22 +13,18 @@
             <result property="solution" column="solution" jdbcType="VARCHAR"/>
             <result property="submittedNum" column="submitted_num" jdbcType="INTEGER"/>
             <result property="acceptedNum" column="accepted_num" jdbcType="INTEGER"/>
-            <result property="judgeCase" column="judge_case" jdbcType="VARCHAR"/>
             <result property="judgeConfig" column="judge_config" jdbcType="VARCHAR"/>
             <result property="userId" column="user_id" jdbcType="BIGINT"/>
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="isDelete" column="is_delete" jdbcType="TINYINT"/>
-            <result property="thumbNum" column="thumb_num" jdbcType="INTEGER"/>
-            <result property="favorNum" column="favor_num" jdbcType="INTEGER"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,title,content,
         tags,level,solution,
-        submitted_num,accepted_num,judge_case,
+        submitted_num,accepted_num,
         judge_config,user_id,create_time,
-        update_time,is_delete,thumb_num,
-        favor_num
+        update_time,is_delete
     </sql>
 </mapper>

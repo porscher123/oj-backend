@@ -7,44 +7,31 @@ import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.DeleteRequest;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.constant.UserConstant;
+import com.wxc.oj.dto.problem.ProblemAddRequest;
+import com.wxc.oj.dto.problem.ProblemEditRequest;
+import com.wxc.oj.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.dto.problem.ProblemUpdateRequest;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
-import com.wxc.oj.model.judge.JudgeCase;
-import com.wxc.oj.model.judge.JudgeConfig;
-import com.wxc.oj.model.dto.problem.ProblemAddRequest;
-import com.wxc.oj.model.dto.problem.ProblemEditRequest;
-import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
-import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
-import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemFactory;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.RequestContext;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.tomcat.util.http.fileupload.disk.DiskFileItemFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Scanner;
 
+import static com.wxc.oj.enums.UserRoleEnum.ADMIN;
 import static org.springframework.beans.BeanUtils.copyProperties;
 
 /**
@@ -65,7 +52,8 @@ public class ProblemController {
     /**
      * 实现了接收一个文件到服务端
      * todo:
-     *  接收一组输入输出样例, 保存到数据库
+     *  接收一组输入输出样例, 保存到/data/xxx
+     *
      * @param file
      * @throws Exception
      */
@@ -73,7 +61,6 @@ public class ProblemController {
     @PostMapping("uploadCase")
     public void getCaseLoad(MultipartFile file) throws Exception {
         log.info("file here");
-//        log.info(file.toString());
         File dir = new File("data");
         if (!dir.exists()) {
             dir.mkdirs();
@@ -93,9 +80,11 @@ public class ProblemController {
 
     /**
      * 创建题目
+     * @param problemAddRequest
+     * 将前端发送的ProblemAddRequest转换为Problem并持久化到数据库
      */
     @PostMapping("add")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse<Problem> addProblem(@RequestBody ProblemAddRequest problemAddRequest,
                                             HttpServletRequest request) {
         if (problemAddRequest == null) {
@@ -107,10 +96,10 @@ public class ProblemController {
         if (tags != null) {
             problem.setTags(JSONUtil.toJsonStr(tags));
         }
-        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
-        if (judgeCase != null) {
-            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
-        }
+//        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
+//        if (judgeCase != null) {
+//            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+//        }
         JudgeConfig judgeConfig = problemAddRequest.getJudgeConfig();
         if (judgeConfig != null) {
             problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
@@ -119,10 +108,9 @@ public class ProblemController {
         // 获取当前用户
         User loginUser = userService.getLoginUser(request);
         problem.setUserId(loginUser.getId());
-        problem.setFavorNum(0);
-        problem.setThumbNum(0);
         problem.setSubmittedNum(0);
         problem.setAcceptedNum(0);
+        // todo:
         // 保存答案
         boolean result = problemService.save(problem);
         // 添加失败
@@ -133,6 +121,48 @@ public class ProblemController {
         return ResultUtils.success(newProblem);
     }
 
+    /**
+     * 创建比赛使用题目
+     */
+    @PostMapping("addtocontest")
+    @AuthCheck(mustRole = ADMIN)
+    public BaseResponse<Problem> addProblemToContest(@RequestBody ProblemAddRequest problemAddRequest,
+                                                     HttpServletRequest request) {
+
+        if (problemAddRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Problem problem = new Problem();
+        copyProperties(problemAddRequest, problem);
+        List<String> tags = problemAddRequest.getTags();
+        if (tags != null) {
+            problem.setTags(JSONUtil.toJsonStr(tags));
+        }
+//        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
+//        if (judgeCase != null) {
+//            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+//        }
+        JudgeConfig judgeConfig = problemAddRequest.getJudgeConfig();
+        if (judgeConfig != null) {
+            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
+        }
+        problemService.validProblem(problem, true);
+        // 获取当前用户
+        User loginUser = userService.getLoginUser(request);
+        // 初始化题目信息
+        problem.setUserId(loginUser.getId());
+        problem.setSubmittedNum(0);
+        problem.setAcceptedNum(0);
+        problem.setOnlyContest(1); // 用于比赛的题目, 比赛结束前所有人不可见
+        // 保存答案
+        boolean result = problemService.save(problem);
+        // 添加失败
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        long newProblemId = problem.getId();
+
+        Problem newProblem = problemService.getById(newProblemId);
+        return ResultUtils.success(newProblem);
+    }
     /**
      * 删除题目(逻辑删除)
      */
@@ -159,7 +189,7 @@ public class ProblemController {
      * 更新（仅管理员）
      */
     @PostMapping("update")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse<ProblemVO> updateProblem(@RequestBody ProblemUpdateRequest problemUpdateRequest) {
         if (problemUpdateRequest == null || problemUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -172,10 +202,10 @@ public class ProblemController {
         if (tags != null) {
             problem.setTags(JSONUtil.toJsonStr(tags));
         }
-        List<JudgeCase> judgeCase = problemUpdateRequest.getJudgeCase();
-        if (judgeCase != null) {
-            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
-        }
+//        List<JudgeCase> judgeCase = problemUpdateRequest.getJudgeCase();
+//        if (judgeCase != null) {
+//            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+//        }
         JudgeConfig judgeConfig = problemUpdateRequest.getJudgeConfig();
         if (judgeConfig != null) {
             problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
@@ -234,7 +264,7 @@ public class ProblemController {
      * 分页获取题目列表（仅管理员）
      */
     @PostMapping("/list/page")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck(mustRole = ADMIN)
     public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
