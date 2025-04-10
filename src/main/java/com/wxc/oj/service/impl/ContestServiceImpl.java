@@ -1,10 +1,9 @@
 package com.wxc.oj.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.sun.tools.jconsole.JConsoleContext;
 import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.mapper.ContestMapper;
 import com.wxc.oj.mapper.ContestProblemMapper;
 import com.wxc.oj.model.entity.Contest;
 import com.wxc.oj.model.entity.ContestProblem;
@@ -12,7 +11,6 @@ import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.vo.ContestVO;
 import com.wxc.oj.queueMessage.ContestMessage;
 import com.wxc.oj.service.ContestService;
-import com.wxc.oj.mapper.ContestMapper;
 import com.wxc.oj.service.ProblemService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
