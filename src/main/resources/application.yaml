@@ -54,6 +54,8 @@ jwt:
     token:
         tokenExpiration: 86400000 # 有效时间ms
         tokenSignKey: onlinejudge # 签名密钥
+
+
 server:
     tomcat:
         max-http-form-post-size: 20MB
@@ -62,6 +64,8 @@ server:
             timeout: 8000
     port: 8080
     address: 0.0.0.0
+    servlet:
+        context-path: /api
 
 
 
