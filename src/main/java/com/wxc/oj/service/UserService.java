@@ -1,7 +1,7 @@
 package com.wxc.oj.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.wxc.oj.dto.user.UserQueryRequest;
+import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.model.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wxc.oj.model.vo.UserVO;
@@ -33,7 +33,7 @@ public interface UserService extends IService<User> {
      * @param userPassword 用户密码
      * @return 脱敏后的用户信息
      */
-    String userLogin(String userAccount, String userPassword, HttpServletRequest request);
+    UserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
 
     List<User> queryUserVOByAccount(String userAccount);

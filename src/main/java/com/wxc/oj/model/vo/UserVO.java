@@ -35,6 +35,8 @@ public class UserVO implements Serializable {
      */
     private String userProfile;
 
+    private String jwtToken;
+
 
     /**
      * 用户角色：user/admin/ban

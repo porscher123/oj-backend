@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.problem;
+package com.wxc.oj.model.dto.problem;
 
 import com.wxc.oj.common.PageRequest;
 import lombok.Data;

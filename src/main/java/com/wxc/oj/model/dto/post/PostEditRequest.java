@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.post;
+package com.wxc.oj.model.dto.post;
 
 import java.io.Serializable;
 import java.util.List;

@@ -1,16 +1,16 @@
-package com.wxc.oj.dto.user;
+package com.wxc.oj.model.dto.user;
 
-import com.wxc.oj.common.PageRequest;
 import java.io.Serializable;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
- * 用户查询请求
+ * 用户更新请求
+ *
+ * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
+ * @from <a href="https://yupi.icu">编程导航知识星球</a>
  */
-@EqualsAndHashCode(callSuper = true)
 @Data
-public class UserQueryRequest extends PageRequest implements Serializable {
+public class UserUpdateRequest implements Serializable {
     /**
      * id
      */
@@ -22,6 +22,11 @@ public class UserQueryRequest extends PageRequest implements Serializable {
     private String userName;
 
     /**
+     * 用户头像
+     */
+    private String userAvatar;
+
+    /**
      * 简介
      */
     private String userProfile;
@@ -29,7 +34,7 @@ public class UserQueryRequest extends PageRequest implements Serializable {
     /**
      * 用户角色：user/admin/ban
      */
-    private Integer userRole;
+    private String userRole;
 
     private static final long serialVersionUID = 1L;
 }

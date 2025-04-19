@@ -17,6 +17,7 @@
         <java.version>17</java.version>
     </properties>
     <dependencies>
+
         <!--  redis      -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

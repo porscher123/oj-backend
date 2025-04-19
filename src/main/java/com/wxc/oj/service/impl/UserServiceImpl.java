@@ -9,7 +9,7 @@ import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.UserMapper;
-import com.wxc.oj.dto.user.UserQueryRequest;
+import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.service.UserService;
@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -32,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.wxc.oj.constant.UserConstant.USER_LOGIN_STATE;
+import static org.springframework.beans.BeanUtils.copyProperties;
 
 /**
  * @author 王新超
@@ -102,7 +102,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param userPassword 用户密码
      * @return
      */
-    public String userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public UserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -126,7 +126,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String userJsonStr = JSONUtil.toJsonStr(user);
         // 用户登陆成功后, 将用户信息保存到redis中, 用户id作为key, 用户json字符串作为value
         stringRedisTemplate.opsForValue().set("user:" + user.getId(), userJsonStr, 1, TimeUnit.DAYS);
-        return token;
+        UserVO userVO = new UserVO();
+        copyProperties(user, userVO);
+        userVO.setJwtToken(token);
+        return userVO;
     }
 
 
@@ -269,7 +272,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return null;
         }
         UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(user, userVO);
+        copyProperties(user, userVO);
         Integer userRole = user.getUserRole();
         UserRoleEnum enumByValue = UserRoleEnum.getEnumByValue(userRole);
         String text = enumByValue.getText();

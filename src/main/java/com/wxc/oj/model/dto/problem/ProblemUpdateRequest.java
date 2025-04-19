@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.problem;
+package com.wxc.oj.model.dto.problem;
 
 import com.wxc.oj.model.judge.JudgeCase;
 import com.wxc.oj.model.judge.JudgeConfig;
@@ -8,17 +8,18 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * 普通用户可以对一个题目的修改
- * 点赞数, 收藏数
+ * 更新请求
+ * 管理员可以对题目的修改
  */
 @Data
-public class ProblemEditRequest implements Serializable {
+public class ProblemUpdateRequest implements Serializable {
+
 
     private Long id;
-//
-//    private String title;
-//
-//    private String content;
+
+    private String title;
+
+    private String content;
 
     private List<String> tags;
 
@@ -26,14 +27,10 @@ public class ProblemEditRequest implements Serializable {
 
     private String solution;
 
-    private Integer thumbNum;
 
-    private Integer favorNum;
-
-    private List<JudgeCase> judgeCase;
+//    private List<JudgeCase> judgeCase;
 
     private JudgeConfig judgeConfig;
-
 
     private static final long serialVersionUID = 1L;
 }

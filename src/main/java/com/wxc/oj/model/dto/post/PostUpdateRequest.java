@@ -1,17 +1,22 @@
-package com.wxc.oj.dto.post;
+package com.wxc.oj.model.dto.post;
 
 import java.io.Serializable;
 import java.util.List;
 import lombok.Data;
 
 /**
- * 创建请求
+ * 更新请求
  *
  * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
  * @from <a href="https://yupi.icu">编程导航知识星球</a>
  */
 @Data
-public class PostAddRequest implements Serializable {
+public class PostUpdateRequest implements Serializable {
+
+    /**
+     * id
+     */
+    private Long id;
 
     /**
      * 标题

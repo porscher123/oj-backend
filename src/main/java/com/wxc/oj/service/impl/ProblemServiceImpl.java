@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.constant.Level;
 import com.wxc.oj.mapper.ProblemMapper;
-import com.wxc.oj.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.entity.Problem;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.service.ProblemService;

@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.dto.contest.ContestAddRequest;
-import com.wxc.oj.dto.contest.ContestProblemAddRequest;
+import com.wxc.oj.model.dto.contest.ContestAddRequest;
+import com.wxc.oj.model.dto.contest.ContestProblemAddRequest;
 import com.wxc.oj.model.entity.Contest;
 import com.wxc.oj.model.entity.ContestProblem;
 import com.wxc.oj.model.vo.ContestVO;
@@ -14,7 +14,6 @@ import com.wxc.oj.service.ContestProblemService;
 import com.wxc.oj.service.ContestService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.annotations.Param;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

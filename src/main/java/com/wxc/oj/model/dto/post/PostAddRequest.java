@@ -1,31 +1,32 @@
-package com.wxc.oj.dto.user;
+package com.wxc.oj.model.dto.post;
 
 import java.io.Serializable;
+import java.util.List;
 import lombok.Data;
 
 /**
- * 用户更新个人信息请求
+ * 创建请求
  *
  * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
  * @from <a href="https://yupi.icu">编程导航知识星球</a>
  */
 @Data
-public class UserUpdateMyRequest implements Serializable {
+public class PostAddRequest implements Serializable {
 
     /**
-     * 用户昵称
+     * 标题
      */
-    private String userName;
+    private String title;
 
     /**
-     * 用户头像
+     * 内容
      */
-    private String userAvatar;
+    private String content;
 
     /**
-     * 简介
+     * 标签列表
      */
-    private String userProfile;
+    private List<String> tags;
 
     private static final long serialVersionUID = 1L;
 }

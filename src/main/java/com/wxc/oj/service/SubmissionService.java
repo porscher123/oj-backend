@@ -2,8 +2,8 @@ package com.wxc.oj.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.wxc.oj.dto.submission.SubmissionAddRequest;
-import com.wxc.oj.dto.submission.SubmissionQueryDTO;
+import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
+import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.entity.Submission;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wxc.oj.model.entity.User;

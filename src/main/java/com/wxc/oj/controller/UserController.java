@@ -1,28 +1,23 @@
 package com.wxc.oj.controller;
 
-import cn.hutool.core.io.resource.StringResource;
-import cn.hutool.json.JSONUtil;
-import cn.hutool.jwt.JWT;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.DeleteRequest;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.dto.user.*;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
+import com.wxc.oj.model.dto.user.*;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
-import com.wxc.oj.utils.JwtUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static com.wxc.oj.enums.UserRoleEnum.ADMIN;
 import static com.wxc.oj.service.impl.UserServiceImpl.SALT;
@@ -76,7 +70,7 @@ public class UserController {
      * @return
      */
     @PostMapping("login")
-    public BaseResponse<String> userLogin(@RequestBody UserLoginRequest userLoginRequest,
+    public BaseResponse<UserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
                                           HttpServletRequest request,
                                           HttpServletResponse response) {
         if (userLoginRequest == null) {
@@ -87,10 +81,10 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        String token = userService.userLogin(userAccount, userPassword, request);
+        UserVO userVO = userService.userLogin(userAccount, userPassword, request);
 //        response.put("token", jwtUtils.createToken(userVO.getId()));
-        response.setHeader("Authorization", "Bearer " + token);
-        return ResultUtils.success(token);
+        response.setHeader("Authorization", "Bearer " + userVO.getJwtToken());
+        return ResultUtils.success(userVO);
     }
 
 

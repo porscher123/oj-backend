@@ -51,7 +51,6 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
      * contest在状态0时的操作:
      * 1. 保存contest到数据库
      *
-     * @param contest
      * @return
      */
     public void contestInStatus_0(Contest contest) {
@@ -76,11 +75,12 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         // 发送消息到延迟交换机, 转发到timePublish队列
         rabbitTemplate.convertAndSend("delayExchange", "timePublish", contestMessage,message -> {
             MessageProperties properties = message.getMessageProperties();
-            properties.setDelay((int) timeDifferenceInMillis);
+            properties.setDelay(Integer.valueOf((int)timeDifferenceInMillis));
             return message;
         });
         log.info("比赛已经发布😊😊😊😊😊");
     }
+
 
     /**
      * contest在状态1的操作
@@ -93,7 +93,7 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
     public void contestInStatus_1(ContestMessage contestMessage) {
         Long id = contestMessage.getId();
         Contest contest = this.getById(id);
-        contest.setStatus(1);
+        contest.setStatus(Integer.valueOf(1));
         boolean updated = this.updateById(contest);
         if (!updated) {
             throw new RuntimeException("更新失败");
@@ -128,7 +128,7 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
     public void contestInStatus_2(ContestMessage contestMessage) {
         Long id = contestMessage.getId();
         Contest contest = this.getById(id);
-        contest.setStatus(2);
+        contest.setStatus(Integer.valueOf(2));
         boolean save = this.updateById(contest);
         if (!save) {
             throw new RuntimeException("更新失败");

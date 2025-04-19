@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.contest;
+package com.wxc.oj.model.dto.contest;
 
 import com.wxc.oj.model.entity.Problem;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.file;
+package com.wxc.oj.model.dto.file;
 
 import java.io.Serializable;
 import lombok.Data;

@@ -1,6 +1,9 @@
 package com.wxc.oj.config;
 
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -10,12 +13,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class RabbitConfiguration {
-    @Bean("directExchange")  //定义交换机Bean，可以很多个
+@Slf4j(topic = "RabbitConfig💕💕💕💕")
+public class RabbitConfig {
+
+
+
+    /**
+     * 创建direct交换机，用于转发submissionID。
+     */
+    @Bean("directExchange")
     public Exchange exchange(){
         return ExchangeBuilder.directExchange("amq.direct").build();
     }
 
+    /**
+     * 创建消息队列，用于存储submissionID。
+     * @return
+     */
     @Bean("submission")     //定义消息队列
     public Queue queue(){
         return QueueBuilder
@@ -23,9 +37,15 @@ public class RabbitConfiguration {
           				.build();
     }
 
+    /**
+     * 绑定directExchange和submission队列，并指定routingKey为submission
+     * @param exchange
+     * @param queue
+     * @return
+     */
     @Bean("binding")
     public Binding binding(@Qualifier("directExchange") Exchange exchange,
-                           @Qualifier("submission") Queue queue){
+                           @Qualifier("submission") Queue queue) {
       	//将我们刚刚定义的交换机和队列进行绑定
         return BindingBuilder
                 .bind(queue)   //绑定队列
@@ -35,8 +55,7 @@ public class RabbitConfiguration {
     }
 
     /**
-     * 延迟交换机
-     * @return
+     * 创建延迟交换机
      */
     @Bean
     public CustomExchange delayExchange() {
@@ -46,7 +65,7 @@ public class RabbitConfiguration {
     }
 
     /**
-     * 延迟队列
+     * 创建2个延迟队列
      */
     @Bean("timePublish")
     public Queue delayQueue1() {

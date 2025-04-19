@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.problem;
+package com.wxc.oj.model.dto.problem;
 
 import com.wxc.oj.model.judge.JudgeCase;
 import com.wxc.oj.model.judge.JudgeConfig;

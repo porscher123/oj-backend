@@ -1,4 +1,4 @@
-package com.wxc.oj.dto.submission;
+package com.wxc.oj.model.dto.submission;
 
 import lombok.Data;
 
