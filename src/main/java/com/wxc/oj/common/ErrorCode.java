@@ -5,7 +5,7 @@ package com.wxc.oj.common;
  */
 public enum ErrorCode {
 
-    SUCCESS(0, "ok"),
+    SUCCESS(200, "ok"),
     PARAMS_ERROR(40000, "param error"),
     NOT_LOGIN_ERROR(40100, "not login"),
     NO_AUTH_ERROR(40101, "no auth"),

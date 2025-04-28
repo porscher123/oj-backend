@@ -19,6 +19,7 @@ public class WebMVCConfig implements WebMvcConfigurer {
     /**
      * 除了用户登陆和注册
      * 其余功能都要校验先token
+     * 用户登录和用户注册api方向，其它接口必须校验token，在拦截器中校验token
      * @param registry
      */
     @Override

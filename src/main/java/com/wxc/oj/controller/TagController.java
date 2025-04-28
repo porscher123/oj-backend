@@ -26,4 +26,7 @@ public class TagController {
         List<Tag> list = tagService.list();
         return ResultUtils.success(list);
     }
+
+
+
 }

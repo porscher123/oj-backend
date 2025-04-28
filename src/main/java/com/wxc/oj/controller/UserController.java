@@ -10,6 +10,7 @@ import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.model.dto.user.*;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.vo.LoginVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
 import jakarta.annotation.Resource;
@@ -18,7 +19,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,9 +37,6 @@ public class UserController {
     @Resource
     private UserService userService;
 
-
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 用户注册
@@ -64,15 +61,15 @@ public class UserController {
 
     /**
      * 用户登录
-     *
+     * 返回的LoginVO中携带
      * @param userLoginRequest
      * @param
      * @return
      */
     @PostMapping("login")
     public BaseResponse<UserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest,
-                                          HttpServletRequest request,
-                                          HttpServletResponse response) {
+                                           HttpServletRequest request,
+                                           HttpServletResponse response) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -81,10 +78,9 @@ public class UserController {
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        UserVO userVO = userService.userLogin(userAccount, userPassword, request);
-//        response.put("token", jwtUtils.createToken(userVO.getId()));
-        response.setHeader("Authorization", "Bearer " + userVO.getJwtToken());
-        return ResultUtils.success(userVO);
+        LoginVO loginVO = userService.userLogin(userAccount, userPassword, request);
+        response.setHeader("Authorization", "Bearer " + loginVO.getToken());
+        return ResultUtils.success(loginVO.getUserVO());
     }
 
 

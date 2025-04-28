@@ -1,6 +1,7 @@
 package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
+import com.wxc.oj.model.entity.Tag;
 import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.entity.Problem;
 import lombok.Data;
@@ -25,7 +26,7 @@ public class ProblemVO implements Serializable {
 
     private String content;
 
-    private List<String> tags;
+    private List<Tag> tags;
 
     private String level;
 
@@ -64,7 +65,7 @@ public class ProblemVO implements Serializable {
         Problem problem = new Problem();
         BeanUtils.copyProperties(problemVO, problem);
         // pojo的tags时String, 要将vo的List<String>转换
-        List<String> tagList = problemVO.getTagList();
+        List<Tag> tagList = problemVO.getTagList();
         problem.setTags(JSONUtil.toJsonStr(tagList));
         // vo的judgeConfig是对象, 所以将对象转为json
         JudgeConfig judgeConfig = problemVO.getJudgeConfig();
@@ -72,7 +73,7 @@ public class ProblemVO implements Serializable {
         return problem;
     }
 
-    private List<String> getTagList() {
+    private List<Tag> getTagList() {
         return this.tags;
     }
 
@@ -85,16 +86,14 @@ public class ProblemVO implements Serializable {
         }
         ProblemVO problemVO = new ProblemVO();
         BeanUtils.copyProperties(problem, problemVO);
+        problemVO.setCreateTime(problem.getCreateTime());
         // vo的tags时List<String>, 要将pojo的JSON String 转换
-        String tags1 = problem.getTags();
-        List<String> list = JSONUtil.toList(problem.getTags(), String.class);
-        problemVO.setTagList(list);
         // 将pojo的json字符串转为JudgeConfig类
         problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
         return problemVO;
     }
 
-    private void setTagList(List<String> list) {
+    private void setTagList(List<Tag> list) {
         this.tags = list;
     }
 }

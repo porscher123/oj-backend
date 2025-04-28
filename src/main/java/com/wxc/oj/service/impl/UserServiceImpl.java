@@ -12,6 +12,7 @@ import com.wxc.oj.mapper.UserMapper;
 import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.vo.LoginVO;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.utils.JwtUtils;
@@ -20,7 +21,6 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -102,7 +102,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param userPassword 用户密码
      * @return
      */
-    public UserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+    public LoginVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -120,16 +120,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
-//        request.getSession().setAttribute(USER_LOGIN_STATE, user);
         // 使用userID生成载荷
-        String token = JwtUtils.createToken(user.getId());
         String userJsonStr = JSONUtil.toJsonStr(user);
         // 用户登陆成功后, 将用户信息保存到redis中, 用户id作为key, 用户json字符串作为value
         stringRedisTemplate.opsForValue().set("user:" + user.getId(), userJsonStr, 1, TimeUnit.DAYS);
         UserVO userVO = new UserVO();
         copyProperties(user, userVO);
-        userVO.setJwtToken(token);
-        return userVO;
+//        String token = JwtUtils.createToken(userVO);
+        String token = JwtUtils.createToken(userVO.getId());
+        LoginVO loginVO = new LoginVO();
+        loginVO.setToken(token);
+        loginVO.setUserVO(userVO);
+        return loginVO;
     }
 
 
@@ -142,24 +144,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return
      */
     public User getLoginUser(HttpServletRequest request) {
-        // 先判断是否已登录
-//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         String token = request.getHeader("Authorization");
-        token = token.substring(7);
-        Long currentUserId = JwtUtils.getUserIdFromToken(token);
-        String s = stringRedisTemplate.opsForValue().get("user:" + currentUserId);
-        User currentUser = JSONUtil.toBean(s, User.class);
-        log.info("当前用户为：{}", currentUser);
-        if (currentUser == null || currentUser.getId() == null) {
+        // 先判断是否已登录
+        if (token != null && token.startsWith("Bearer ")) {
+            // 提取Bearer后面的token部分
+            token = token.substring(7);
+//            UserVO userVO = JwtUtils.parseUserVOFromToken(token);
+//            Long currentUserId = userVO.getId();
+            Long currentUserId = JwtUtils.getUserIdFromToken(token);
+            String s = stringRedisTemplate.opsForValue().get("user:" + currentUserId);
+            User currentUser = JSONUtil.toBean(s, User.class);
+            log.info("当前用户为：{}", currentUser);
+            return currentUser;
+        } else {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-        // 从数据库查询（追求性能的话可以注释，直接走缓存）
-//        long userId = currentUser.getId();
-//        currentUser = this.getById(userId);
-//        if (currentUser == null) {
-//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-//        }
-        return currentUser;
     }
 
 //    @Override

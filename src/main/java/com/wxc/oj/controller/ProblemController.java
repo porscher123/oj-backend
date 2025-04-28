@@ -14,11 +14,14 @@ import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.entity.Tag;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.service.ProblemService;
+import com.wxc.oj.service.TagService;
 import com.wxc.oj.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,12 +45,11 @@ import static org.springframework.beans.BeanUtils.copyProperties;
 @Slf4j(topic = "ProblemController🛴🛴🛴🛴🛴🛴")
 public class ProblemController {
 
-    @Autowired
+    @Resource
     private ProblemService problemService;
 
-    @Autowired
+    @Resource
     private UserService userService;
-
 
     /**
      * 实现了接收一个文件到服务端
@@ -279,13 +281,11 @@ public class ProblemController {
     /**
      * 分页获取列表（封装类）
      * 展示用户可见的部分(普通用户使用)
-     *
-     * @param request
+     * @param
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
-                                            HttpServletRequest request) {
+    public BaseResponse listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
         // 限制爬虫
@@ -352,5 +352,4 @@ public class ProblemController {
         boolean result = problemService.updateById(Problem);
         return ResultUtils.success(result);
     }
-
 }

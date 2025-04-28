@@ -1,18 +1,25 @@
 package com.wxc.oj.utils;
 
+import cn.hutool.json.JSONUtil;
 import com.alibaba.druid.util.StringUtils;
+import com.wxc.oj.model.vo.UserVO;
 import io.jsonwebtoken.*;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.glassfish.hk2.api.messaging.Topic;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @Auhor: wxc
  * @Date: 2025年3月25日19点40分
  */
 @Data
+@Slf4j(topic = "JWTutils    ")
 @Component
 @ConfigurationProperties(prefix = "jwt.token") // 配置读取属性的前缀
 public class JwtUtils {
@@ -44,6 +51,39 @@ public class JwtUtils {
     }
 
     /**
+     * 根据对象生成JWT
+     * @param userVO
+     * @return
+     */
+//    public static String createToken(UserVO userVO) {
+//        Map<String, Object> claims = new HashMap<>();
+//        String jsonStr = JSONUtil.toJsonStr(userVO);
+//        claims.put("user", jsonStr); // 将对象存储在 JWT 的负载中
+//        String token = Jwts.builder()
+//                .setSubject("online judge")
+//                .setExpiration(new Date(System.currentTimeMillis() + tokenExpiration*1000*60)) //单位分钟
+//                .setClaims(claims)
+//                .signWith(SignatureAlgorithm.HS512, tokenSignKey)
+//                .compact();
+//        return token;
+//    }
+
+    /**
+     * 解析JWT， 获取其中的对象
+     * @param token
+     * @return
+     */
+//    public static UserVO parseUserVOFromToken(String token) {
+//        Claims body = Jwts.parser()
+//                .setSigningKey(tokenSignKey)
+//                .parseClaimsJws(token)
+//                .getBody();
+//        String userJsonStr = (String) body.get("user");
+//        UserVO user = JSONUtil.toBean(userJsonStr, UserVO.class);
+//        log.info("user = " + user);
+//        return user;
+//    }
+    /**
      * 从token字符串获取userid
      * @param token
      * @return
@@ -68,18 +108,34 @@ public class JwtUtils {
      * @param token
      * @return
      */
-    public boolean isExpiration(String token){
+//    public boolean isExpiration(String token){
+////        try {
+////
+////            boolean isExpire = Jwts.parser()
+////                    .setSigningKey(tokenSignKey)
+////                    .parseClaimsJws(token)
+////                    .getBody()
+////                    .getExpiration().before(new Date());
+////            //没有过期，有效，返回false
+////            return isExpire;
+////        }catch(Exception e) {
+////            //过期出现异常，返回true
+////            return true;
+////        }
+//
+//    }
+    public static boolean isTokenValid(String token) {
         try {
-            boolean isExpire = Jwts.parser()
-                    .setSigningKey(tokenSignKey)
-                    .parseClaimsJws(token)
-                    .getBody()
-                    .getExpiration().before(new Date());
-            //没有过期，有效，返回false
-            return isExpire;
-        }catch(Exception e) {
-            //过期出现异常，返回true
+            Jwts.parser().setSigningKey(tokenSignKey).parseClaimsJws(token);
             return true;
+        } catch (ExpiredJwtException e) {
+            System.out.println("Token 已过期");
+        } catch (SignatureException e) {
+            System.out.println("Token 签名无效");
+        } catch (Exception e) {
+            System.out.println("Token 验证出错: " + e.getMessage());
         }
+        return false;
     }
+
 }

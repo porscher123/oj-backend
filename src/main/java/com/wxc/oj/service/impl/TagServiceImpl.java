@@ -1,10 +1,14 @@
 package com.wxc.oj.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.model.entity.Tag;
 import com.wxc.oj.service.TagService;
 import com.wxc.oj.mapper.TagMapper;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
 * @author 王新超
@@ -16,6 +20,12 @@ public class
 TagServiceImpl extends ServiceImpl<TagMapper, Tag>
     implements TagService {
 
+    @Resource
+    private TagMapper tagMapper;
+    public List<Tag> listTagsByProblemId(Long problemId) {
+        List<Tag> tags = tagMapper.listTagsByProblemId(problemId);
+        return tags;
+    }
 }
 
 

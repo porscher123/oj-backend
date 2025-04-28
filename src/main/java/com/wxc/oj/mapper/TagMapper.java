@@ -2,6 +2,9 @@ package com.wxc.oj.mapper;
 
 import com.wxc.oj.model.entity.Tag;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 /**
 * @author 王新超
@@ -11,6 +14,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface TagMapper extends BaseMapper<Tag> {
 
+
+    @Select("select * from tag where id in (select tag_id from problem_tag where problem_id = #{problemId})")
+    List<Tag> listTagsByProblemId(Long problemId);
 }
 
 

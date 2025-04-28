@@ -10,13 +10,16 @@ import com.wxc.oj.constant.Level;
 import com.wxc.oj.mapper.ProblemMapper;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.entity.Tag;
 import com.wxc.oj.model.entity.User;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.UserVO;
+import com.wxc.oj.service.TagService;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -30,12 +33,14 @@ import java.util.stream.Collectors;
 * @createDate 2024-02-28 14:24:47
 */
 @Service
+@Slf4j(topic = "ProblemServiceImpl🏍🏍🏍🏍🏍🏍🏍🏍🏍")
 public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> implements ProblemService {
 
     @Resource
     private UserService userService;
 
-
+    @Resource
+    private TagService tagService;
 
     private boolean checkLevel(String level) {
         Set<String> levels = new HashSet<>();
@@ -54,20 +59,6 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
      */
     @Override
     public void validProblem(Problem problem, boolean add) {
-        // .allGet生成所有getter
-        String title = problem.getTitle();
-        String content = problem.getContent();
-        String tags = problem.getTags();
-//        String level = problem.getLevel();
-        String solution = problem.getSolution();
-//        String judgeCase = problem.getJudgeCase();
-        String judgeConfig = problem.getJudgeConfig();
-
-        // 校验题目难度是否合法
-
-//        if (!checkLevel(level)) {
-//            throw new BusinessException(ErrorCode.OPERATION_ERROR);
-//        }
 
     }
 
@@ -110,6 +101,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     /**
      * 生成要返回给前端的VO对象
      * 进行了数据脱敏
+     * 题目对应的用户信息和标签信息需要再次查询
      * @param problem
      * @return
      */
@@ -124,28 +116,20 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             user = userService.getById(userId);
         }
         UserVO userVO = userService.getUserVO(user);
+        List<Tag> tags = tagService.listTagsByProblemId(problem.getId());
+        problemVO.setTags(tags);
         problemVO.setUserVO(userVO);
         return problemVO;
     }
     /**
      * 生成要返回给前端的VO对象
      * 进行了数据脱敏
-     * @param problem
-     * @return
      */
     @Override
     public List<ProblemVO> getProblemVO(List<Problem> problemList) {
         ArrayList<ProblemVO> problemVOList = new ArrayList<>();
         for (Problem problem : problemList) {
-            ProblemVO problemVO = ProblemVO.objToVo(problem);
-            Long userId = problem.getUserId();
-            User user = null;
-            if (userId != null && userId > 0) {
-                user = userService.getById(userId);
-            }
-            UserVO userVO = userService.getUserVO(user);
-            problemVO.setUserVO(userVO);
-
+            ProblemVO problemVO = getProblemVO(problem);
             problemVOList.add(problemVO);
         }
         return problemVOList;
@@ -158,26 +142,30 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     @Override
     public Page<ProblemVO> getProblemVOPage(Page<Problem> problemPage) {
         List<Problem> problemList = problemPage.getRecords();
+
         Page<ProblemVO> problemVOPage = new Page<>(problemPage.getCurrent(), problemPage.getSize(), problemPage.getTotal());
         if (CollUtil.isEmpty(problemList)) {
             return problemVOPage;
         }
+        List<ProblemVO> problemVOList = getProblemVO(problemList);
         // 1. 关联查询用户信息
-        Set<Long> userIdSet = problemList.stream().map(Problem::getUserId).collect(Collectors.toSet());
-        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
-                .collect(Collectors.groupingBy(User::getId));
-        // 2. 已登录，获取用户点赞、收藏状态
-        // 填充信息
-        List<ProblemVO> problemVOList = problemList.stream().map(problem -> {
-            ProblemVO problemVO = ProblemVO.objToVo(problem);
-            Long userId = problem.getUserId();
-            User user = null;
-            if (userIdUserListMap.containsKey(userId)) {
-                user = userIdUserListMap.get(userId).get(0);
-            }
-            problemVO.setUserVO(userService.getUserVO(user));
-            return problemVO;
-        }).collect(Collectors.toList());
+//        Set<Long> userIdSet = problemList.stream().map(Problem::getUserId).collect(Collectors.toSet());
+//        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
+//                .collect(Collectors.groupingBy(User::getId));
+//        // 2. 已登录，获取用户点赞、收藏状态
+//        // 填充信息
+//        List<ProblemVO> problemVOList = problemList.stream().map(problem -> {
+//            ProblemVO problemVO = ProblemVO.objToVo(problem);
+//            Long userId = problem.getUserId();
+//            User user = null;
+//            if (userIdUserListMap.containsKey(userId)) {
+//                user = userIdUserListMap.get(userId).get(0);
+//            }
+//            problemVO.setUserVO(userService.getUserVO(user));
+//
+////            problemVO.setTags();
+//            return problemVO;
+//        }).collect(Collectors.toList());
         problemVOPage.setRecords(problemVOList);
         return problemVOPage;
     }

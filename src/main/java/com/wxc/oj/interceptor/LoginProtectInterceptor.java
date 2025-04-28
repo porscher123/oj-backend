@@ -6,18 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.utils.JwtUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
@@ -54,21 +52,42 @@ public class LoginProtectInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if (HttpMethod.OPTIONS.toString().equals(request.getMethod())) {
+            return true;
+        }
 //        String token = request.getHeader("token");
-        String token = request.getHeader("Authorization");
-        token = token.substring(7);
+        String token1 = request.getHeader("Authorization");
+        log.info("token = " + token1);
+        if (token1 == null || !token1.startsWith(BEARER_PREFIX)) {
+            BaseResponse result = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String json = objectMapper.writeValueAsString(result);
+            response.getWriter().print(json);
+            return false;
+        }
+        log.info("token = " + token1);
+
+        String token = token1.substring(7);
         log.info("token = " + token);
         // token为空, 肯定是无效的
-        boolean expiration = jwtUtils.isExpiration(token);
+        boolean valid = jwtUtils.isTokenValid(token);
         // 有效
-        if (!expiration) {
+        if (valid) {
+            log.info("token有效");
+//            UserVO userVO = JwtUtils.parseUserVOFromToken(token);
+//            log.info("uservo = " + userVO);
+//            Long userId = userVO.getId();
+//            log.info("userId = " + userId);
             Long userId = JwtUtils.getUserIdFromToken(token);
             String s = stringRedisTemplate.opsForValue().get("user:" + userId);
             User user = JSONUtil.toBean(s, User.class);
             if (s != null && user != null) {
+                log.info("token有效2");
+
                 return true;
             }
         }
+        log.info("token无效");
         // token无效, 设置响应体内容
         BaseResponse result = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR);
         ObjectMapper objectMapper = new ObjectMapper();
