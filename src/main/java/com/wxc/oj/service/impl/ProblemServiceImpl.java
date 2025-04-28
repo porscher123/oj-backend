@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.constant.Level;
+import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ProblemMapper;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.entity.Problem;
@@ -73,9 +75,17 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         if (problemQueryRequest == null) {
             return queryWrapper.lambda();
         }
-        Long id = problemQueryRequest.getId();
         String title = problemQueryRequest.getTitle();
-        List<String> tags = problemQueryRequest.getTags();
+
+        // 第1次查数据库,根据tags筛选ids
+        List<String> tags = problemQueryRequest.getTags(); // 获取标签列表
+        if (tags != null && !tags.isEmpty()) {
+            List<Long> problemIds = tagService.getProblemIdsByTagNames(tags);
+            queryWrapper.in(!problemIds.isEmpty() && problemIds != null, "id", problemIds);
+        }
+
+//        log.info("💕💕💕💕💕💕💕💕" + problemIds.toString() + "💕💕💕💕💕💕");
+
         String level = problemQueryRequest.getLevel();
         String sortField = problemQueryRequest.getSortField();
         String sortOrder = problemQueryRequest.getSortOrder();
@@ -86,17 +96,43 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         // 拼接查询条件
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title)
                 .eq(StringUtils.isNotBlank(level) && checkLevel(level),"level", level);
-        if (tags != null) {
-            for (String tag : tags) {
-                queryWrapper.like(StringUtils.isNotBlank(tag), "tags", tag);
-            }
-        }
-        queryWrapper.eq(ObjectUtils.isNotEmpty(id),"id", id);
+
+
+
+
+
+//        queryWrapper.eq(ObjectUtils.isNotEmpty(id),"id", id);
 
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper.lambda();
     }
+
+
+    /**
+     * 接受DTO对象, 查询满足请求的所有Problem对象,并封装成VO对象
+     * @param problemQueryRequest
+     * @return
+     */
+    public Page<ProblemVO> listProblemVO(ProblemQueryRequest problemQueryRequest) {
+        int current = problemQueryRequest.getCurrent();
+        int pageSize = problemQueryRequest.getPageSize();
+        if (problemQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 获取查询条件
+        LambdaQueryWrapper<Problem> queryWrapper = getQueryWrapper(problemQueryRequest);
+        // 查询
+        Page<Problem> problemPage = this.page(new Page<>(current, pageSize), queryWrapper);
+        Page<ProblemVO> problemVOPage = this.getProblemVOPage(problemPage);
+        // 返回
+        return problemVOPage;
+    }
+
+
+
+
+
 
     /**
      * 生成要返回给前端的VO对象
@@ -136,36 +172,20 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     }
     /**
      * 生成分页的VO对象
+     * 主要是修改Page对象的records属性
+     * records属性就是 List<Problem>
+     * 将Page的records属性从List<Problem>修改为List<ProblemVO>
      * @param problemPage
      * @return
      */
     @Override
     public Page<ProblemVO> getProblemVOPage(Page<Problem> problemPage) {
         List<Problem> problemList = problemPage.getRecords();
-
         Page<ProblemVO> problemVOPage = new Page<>(problemPage.getCurrent(), problemPage.getSize(), problemPage.getTotal());
         if (CollUtil.isEmpty(problemList)) {
             return problemVOPage;
         }
         List<ProblemVO> problemVOList = getProblemVO(problemList);
-        // 1. 关联查询用户信息
-//        Set<Long> userIdSet = problemList.stream().map(Problem::getUserId).collect(Collectors.toSet());
-//        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
-//                .collect(Collectors.groupingBy(User::getId));
-//        // 2. 已登录，获取用户点赞、收藏状态
-//        // 填充信息
-//        List<ProblemVO> problemVOList = problemList.stream().map(problem -> {
-//            ProblemVO problemVO = ProblemVO.objToVo(problem);
-//            Long userId = problem.getUserId();
-//            User user = null;
-//            if (userIdUserListMap.containsKey(userId)) {
-//                user = userIdUserListMap.get(userId).get(0);
-//            }
-//            problemVO.setUserVO(userService.getUserVO(user));
-//
-////            problemVO.setTags();
-//            return problemVO;
-//        }).collect(Collectors.toList());
         problemVOPage.setRecords(problemVOList);
         return problemVOPage;
     }

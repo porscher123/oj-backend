@@ -9,8 +9,14 @@
             <result property="name" column="name" jdbcType="VARCHAR"/>
             <result property="color" column="color" jdbcType="VARCHAR"/>
     </resultMap>
-
     <sql id="Base_Column_List">
         id,name,color
     </sql>
+
+    <select id="getProblemIdsByTagIds" resultType="java.lang.Long">
+        select problem_id from problem_tag where tag_id in
+        <foreach item="tagId" collection="tagIds" separator="," open="(" close=")" index="">
+            #{tagId}
+        </foreach>
+    </select>
 </mapper>

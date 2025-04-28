@@ -286,13 +286,11 @@ public class ProblemController {
      */
     @PostMapping("/list/page/vo")
     public BaseResponse listProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
-        long current = problemQueryRequest.getCurrent();
-        long size = problemQueryRequest.getPageSize();
         // 限制爬虫
+        long size = problemQueryRequest.getPageSize();
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
-                problemService.getQueryWrapper(problemQueryRequest));
-        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage));
+        Page<ProblemVO> problemVOPage = problemService.listProblemVO(problemQueryRequest);
+        return ResultUtils.success(problemVOPage);
     }
 
     /**

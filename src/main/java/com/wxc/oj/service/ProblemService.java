@@ -51,4 +51,6 @@ public interface ProblemService extends IService<Problem> {
      * @return
      */
     Page<ProblemVO> getProblemVOPage(Page<Problem> postPage);
+
+    Page<ProblemVO> listProblemVO(ProblemQueryRequest problemQueryRequest);
 }
