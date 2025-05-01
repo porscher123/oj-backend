@@ -1,6 +1,6 @@
 package com.wxc.oj.service;
 
-import com.wxc.oj.model.entity.ContestRegistration;
+import com.wxc.oj.model.po.ContestRegistration;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
-import com.wxc.oj.model.entity.Submission;
+import com.wxc.oj.model.po.Submission;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.model.vo.SubmissionVO;
 
 /**
@@ -22,7 +22,7 @@ public interface SubmissionService extends IService<Submission> {
     LambdaQueryWrapper<Submission> getQueryWrapper(SubmissionQueryDTO submissionQueryDTO);
 
 
-    SubmissionVO getSubmissionVO(Submission submission);
+    SubmissionVO submissionToVO(Submission submission);
 
     Page<SubmissionVO> getSubmissionVOPage(Page<Submission> submissionPage);
 }

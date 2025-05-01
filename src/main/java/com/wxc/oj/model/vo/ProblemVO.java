@@ -1,9 +1,10 @@
 package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
-import com.wxc.oj.model.entity.Tag;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.wxc.oj.model.po.Tag;
 import com.wxc.oj.model.judge.JudgeConfig;
-import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.po.Problem;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
@@ -13,11 +14,12 @@ import java.util.List;
 
 /**
  * 返回给前端的关于Problem的数据封装类
+ * 用户给前端表格展示的题目,不需要返回content大文本
  */
 @Data
 public class ProblemVO implements Serializable {
 
-    /**
+    /*
      * 可以给前端用户查看题目id
      */
     private Long id;
@@ -28,9 +30,7 @@ public class ProblemVO implements Serializable {
 
     private List<Tag> tags;
 
-    private String level;
-
-//    private String solution;
+    private Integer level;
 
     private Integer submittedNum;
 
@@ -46,6 +46,11 @@ public class ProblemVO implements Serializable {
      */
     private JudgeConfig judgeConfig;
 
+
+    /**
+     * 只给前端返回到日期, 不要返回到具体时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd",timezone="GMT+8")
     private Date createTime;
 
     private Date updateTime;
@@ -58,42 +63,53 @@ public class ProblemVO implements Serializable {
     /**
      * vo -> pojo
      */
-    public static Problem voToObj(ProblemVO problemVO) {
-        if (problemVO == null) {
-            return null;
-        }
-        Problem problem = new Problem();
-        BeanUtils.copyProperties(problemVO, problem);
-        // pojo的tags时String, 要将vo的List<String>转换
-        List<Tag> tagList = problemVO.getTagList();
-        problem.setTags(JSONUtil.toJsonStr(tagList));
-        // vo的judgeConfig是对象, 所以将对象转为json
-        JudgeConfig judgeConfig = problemVO.getJudgeConfig();
-        problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
-        return problem;
-    }
+//    public static Problem voToObj(ProblemVO problemVO) {
+//        if (problemVO == null) {
+//            return null;
+//        }
+//        Problem problem = new Problem();
+//        BeanUtils.copyProperties(problemVO, problem);
+//        // pojo的tags时String, 要将vo的List<String>转换
+//        List<Tag> tagList = problemVO.getTagList();
+//        problem.setTags(JSONUtil.toJsonStr(tagList));
+//        // vo的judgeConfig是对象, 所以将对象转为json
+//        JudgeConfig judgeConfig = problemVO.getJudgeConfig();
+//        problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
+//        return problem;
+//    }
 
-    private List<Tag> getTagList() {
-        return this.tags;
-    }
 
     /**
+     * 查询题目列表，不返回题目content
      * pojo -> vo
      */
-    public static ProblemVO objToVo(Problem problem) {
+    public static ProblemVO objToVoWithoutContent(Problem problem) {
         if (problem == null) {
             return null;
         }
         ProblemVO problemVO = new ProblemVO();
         BeanUtils.copyProperties(problem, problemVO);
-        problemVO.setCreateTime(problem.getCreateTime());
+        // vo的tags时List<String>, 要将pojo的JSON String 转换
+        // 将pojo的json字符串转为JudgeConfig类
+        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
+        problemVO.setContent(null);
+        return problemVO;
+    }
+
+    /**
+     * 查询单个problem，返回具体题目描述信息
+     * @param problem
+     * @return
+     */
+    public static ProblemVO objToVoWithContent(Problem problem) {
+        if (problem == null) {
+            return null;
+        }
+        ProblemVO problemVO = new ProblemVO();
+        BeanUtils.copyProperties(problem, problemVO);
         // vo的tags时List<String>, 要将pojo的JSON String 转换
         // 将pojo的json字符串转为JudgeConfig类
         problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
         return problemVO;
-    }
-
-    private void setTagList(List<Tag> list) {
-        this.tags = list;
     }
 }

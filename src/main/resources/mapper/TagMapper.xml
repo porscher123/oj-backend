@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.wxc.oj.mapper.TagMapper">
 
-    <resultMap id="BaseResultMap" type="com.wxc.oj.model.entity.Tag">
+    <resultMap id="BaseResultMap" type="com.wxc.oj.model.po.Tag">
             <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="name" column="name" jdbcType="VARCHAR"/>
             <result property="color" column="color" jdbcType="VARCHAR"/>
@@ -16,6 +16,14 @@
     <select id="getProblemIdsByTagIds" resultType="java.lang.Long">
         select problem_id from problem_tag where tag_id in
         <foreach item="tagId" collection="tagIds" separator="," open="(" close=")" index="">
+            #{tagId}
+        </foreach>
+    </select>
+    <select id="getProblemIdsByTagNames" resultType="java.lang.Long">
+        select problem_id from problem_tag
+        join tag on problem_tag.tag_id = tag.id
+        where tag.name in
+        <foreach item="tags" collection="tagNames" separator="," open="(" close=")" index="">
             #{tagId}
         </foreach>
     </select>

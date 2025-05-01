@@ -1,5 +1,6 @@
-package com.wxc.oj.model.entity;
+package com.wxc.oj.model.po;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -13,7 +14,7 @@ import java.util.Date;
 @TableName(value ="problem")
 @Data
 public class Problem implements Serializable {
-    @TableId("id")
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String title;
@@ -25,7 +26,7 @@ public class Problem implements Serializable {
     /**
      * 难度
      */
-    private String level;
+    private Integer level;
 
     /**
      * 题解

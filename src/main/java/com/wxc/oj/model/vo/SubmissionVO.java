@@ -2,7 +2,7 @@ package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
 import com.wxc.oj.enums.submission.SubmissionStatus;
-import com.wxc.oj.model.entity.Submission;
+import com.wxc.oj.model.po.Submission;
 import com.wxc.oj.model.submission.SubmissionResult;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -15,40 +15,36 @@ import java.util.Date;
  */
 @Data
 public class SubmissionVO implements Serializable {
+
     private static final long serialVersionUID = 1L;
+
     private Long id;
+
     private Long userId;
+
+    private String userAccount;
+
     private Long problemId;
+
+    private String problemTitle;
+
     private String sourceCode;
 
-
-    private Long totalTime;
-
-    private Long totalMemory;
-
+    /**
+     * 从sourceCode计算长度 多少 B
+     * 返回KB为单位
+     */
     private Integer codeLength;
-    /**
-     * 返回多组测试用例的判题信息
-     */
-    private SubmissionResult submissionResult;
 
-    /**
-     * 判题状态
-     * waiting, ...
-     */
-    private Integer status;
-
-    private String submissionStatus;
-    /**
-     * 得分: AC的样例占总样例的比例
-     */
-    private Integer score;
 
     private String language;
-    private ProblemVO problemVO;
-    private UserVO userVO;
-    private Date createTime;
 
+    private Date createTime;
+    /**
+     * 返回多组测试用例的判题信息
+     * 查询某个submission时使用
+     */
+    private SubmissionResult submissionResult;
     /**
      * vo -> pojo
      */
@@ -69,21 +65,18 @@ public class SubmissionVO implements Serializable {
 
     /**
      * pojo -> vo
+     * codeLength 返回KB为单位
+     * 数据库中的JSON字符串解析为对象
      */
     public static SubmissionVO objToVo(Submission submission) {
         if (submission == null) {
             return null;
         }
         SubmissionVO submissionVO = new SubmissionVO();
+        // 核心❗❗❗
         BeanUtils.copyProperties(submission, submissionVO);
 
-        String submissionResultStr = submission.getSubmissionResult();
-        SubmissionResult submissionResult1 = JSONUtil.toBean(submissionResultStr, SubmissionResult.class);
-        Integer status1 = submission.getStatus();
-        String typeByStatus = SubmissionStatus.getTypeByStatus(status1);
-        submissionVO.setSubmissionStatus(typeByStatus);
-        submissionVO.setSubmissionStatus(SubmissionStatus.getTypeByStatus(submission.getStatus()));
-        submissionVO.setSubmissionResult(submissionResult1);
+        submissionVO.setCodeLength(submission.getSourceCode().length());
         return submissionVO;
     }
 }

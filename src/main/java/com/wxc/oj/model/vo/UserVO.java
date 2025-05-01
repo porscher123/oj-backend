@@ -3,7 +3,7 @@ package com.wxc.oj.model.vo;
 import java.io.Serializable;
 import java.util.Date;
 
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.User;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
@@ -39,7 +39,7 @@ public class UserVO implements Serializable {
     /**
      * 用户角色：user/admin/ban
      */
-    private String userRole;
+    private Integer userRole;
 
     /**
      * 创建时间
@@ -58,9 +58,6 @@ public class UserVO implements Serializable {
         }
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(user, userVO);
-        userVO.setId(null);
-        userVO.setUserRole(null);
-        userVO.setCreateTime(null);
         return userVO;
     }
 }

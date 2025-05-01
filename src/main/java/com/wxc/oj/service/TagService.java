@@ -1,9 +1,7 @@
 package com.wxc.oj.service;
 
-import com.wxc.oj.model.entity.Problem;
-import com.wxc.oj.model.entity.Tag;
+import com.wxc.oj.model.po.Tag;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.wxc.oj.model.vo.ProblemVO;
 
 import java.util.List;
 

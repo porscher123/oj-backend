@@ -1,10 +1,7 @@
 package com.wxc.oj.mapper;
 
-import cn.hutool.core.net.LocalPortGenerater;
-import com.wxc.oj.model.entity.Problem;
-import com.wxc.oj.model.entity.Tag;
+import com.wxc.oj.model.po.Tag;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.wxc.oj.model.vo.ProblemVO;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
@@ -29,6 +26,9 @@ public interface TagMapper extends BaseMapper<Tag> {
 
 //    @Select("select problem_id from problem_tag where tag_id in ${tagIds}")
     List<Long> getProblemIdsByTagIds(List<Integer> tagIds);
+
+
+    List<Long> getProblemIdsByTagNames(List<String> tagNames);
 }
 
 

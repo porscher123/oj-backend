@@ -11,7 +11,7 @@ import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.UserMapper;
 import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.enums.UserRoleEnum;
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.model.vo.LoginVO;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.model.vo.UserVO;
@@ -272,10 +272,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         UserVO userVO = new UserVO();
         copyProperties(user, userVO);
-        Integer userRole = user.getUserRole();
-        UserRoleEnum enumByValue = UserRoleEnum.getEnumByValue(userRole);
-        String text = enumByValue.getText();
-        userVO.setUserRole(text);
         return userVO;
     }
 

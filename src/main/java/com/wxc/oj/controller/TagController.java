@@ -2,7 +2,7 @@ package com.wxc.oj.controller;
 
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.model.entity.Tag;
+import com.wxc.oj.model.po.Tag;
 import com.wxc.oj.service.TagService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

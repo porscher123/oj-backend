@@ -1,7 +1,6 @@
 package com.wxc.oj.judger.service;
 
 import com.wxc.oj.model.judge.JudgeCaseResult;
-import com.wxc.oj.model.submission.SubmissionResult;
 import com.wxc.oj.sandbox.dto.SandBoxResponse;
 import com.wxc.oj.sandbox.model.LanguageConfig;
 

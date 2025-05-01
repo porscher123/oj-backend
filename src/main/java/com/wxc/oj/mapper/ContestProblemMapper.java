@@ -1,6 +1,6 @@
 package com.wxc.oj.mapper;
 
-import com.wxc.oj.model.entity.ContestProblem;
+import com.wxc.oj.model.po.ContestProblem;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

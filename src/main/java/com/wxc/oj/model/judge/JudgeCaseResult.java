@@ -13,22 +13,31 @@ import lombok.Data;
 @Data
 public class JudgeCaseResult {
     /**
-     * 这次提交的通过情况
-     */
-    /**
      * 后续测试点展示
      */
-    private String input;
-    private String output;
-    private String ans;
+    private Integer index;
 
-    private String message;
+    private String input;
+
+    private String output;
+
+    private String ans;
+    /**
+     * ACCEPTED,...
+     */
+    private String judgeResult;
+
+    private Integer gainScore;
+
+    private Integer fullScore;
+
+
     /**
      * 这次提交的时间消耗
      */
-    private String timeCost;
+    private Long timeCost;
     /**
      * 使用的内存
      */
-    private String memoryUsed;
+    private Long memoryUsed;
 }

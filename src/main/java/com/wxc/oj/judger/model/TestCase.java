@@ -7,4 +7,5 @@ public class TestCase {
     private int index;
     private String input;
     private String output;
+    private int fullScore;
 }

@@ -1,5 +1,6 @@
 package com.wxc.oj.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -10,12 +11,13 @@ import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.SubmissionMapper;
+import com.wxc.oj.model.submission.SubmissionResult;
 import com.wxc.oj.queueMessage.SubmissionMessage;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
-import com.wxc.oj.model.entity.Problem;
-import com.wxc.oj.model.entity.Submission;
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.Problem;
+import com.wxc.oj.model.po.Submission;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.SubmissionVO;
@@ -30,6 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -84,32 +87,50 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         if (problem == null) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_EXIST);
         }
+
+        // 创建并初始化待插入数据库的submission和submissionResult
         Submission submission = new Submission();
-        // 创建并初始化待插入数据库的submission
+        SubmissionResult submissionResult = new SubmissionResult();
+
         submission.setProblemId(problemId);
         submission.setUserId(loginUser.getId());
         submission.setSourceCode(submissionAddRequest.getSourceCode());
         submission.setLanguage(submissionAddRequest.getLanguage());
-        // 初始化判题状态为 waiting
-        submission.setStatus(SubmissionStatus.PENDING.getStatus());
-        submission.setSubmissionResult("{}");
-        // 保存到数据库
+
+        // 初始化判题状态为 NOT_SUBMITTED
+//        submission.setStatus(SubmissionStatus.SUBMITTED.getStatus());
+
+        submissionResult.setStatus(SubmissionStatus.SUBMITTED.getStatus());
+        submissionResult.setStatusDescription(SubmissionStatus.SUBMITTED.getDescription());
+        submissionResult.setScore(0);
+
+        submission.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
+
+        // 初始submission保存到数据库
         boolean save = this.save(submission);
         if (!save) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
+
+        // 获取插入数据库后的submissionID
         Submission submission1 = this.getById(submission.getId());
-        // 发送到rocketmq
+        // submission发送到消息队列后，submission的状态为 PENDING
+        // ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
         Long id = submission1.getId();
         if (id != null) {
             SubmissionMessage submissionMessage = new SubmissionMessage();
             submissionMessage.setId(id);
             log.info("发送submissionId: " + id);
-            //使用convertAndSend方法一步到位，参数基本和之前是一样的
+            //
+            // 使用convertAndSend方法一步到位，参数基本和之前是一样的
             //最后一个消息本体可以是Object类型，真是大大的方便
             // 发送消息到直连交换机, 指定路由键
             rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, submissionMessage);
+//            submission1.setStatus(SubmissionStatus.PENDING.getStatus());
+            submissionResult.setStatus(SubmissionStatus.PENDING.getStatus());
+            submissionResult.setStatusDescription(SubmissionStatus.PENDING.getDescription());
         }
+        this.updateById(submission1);
         // 异步化了, 所以返回的还是刚开始的初始的submission
         Submission submission2 = this.getById(submission.getId());
         return submission2;
@@ -149,19 +170,26 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
      * 进行数据脱敏和数据库id扩展
      */
     @Override
-    public SubmissionVO getSubmissionVO(Submission submission) {
-        // 将entity转为vo
+    public SubmissionVO submissionToVO(Submission submission) {
+        // pojo的基础数据映射
         SubmissionVO submissionVO = SubmissionVO.objToVo(submission);
+        // 解析pojo对象的JSON字符串为对象
+        String submissionResultStr = submission.getSubmissionResult();
+        SubmissionResult submissionResult = JSONUtil.toBean(submissionResultStr, SubmissionResult.class);
+        submissionVO.setSubmissionResult(submissionResult);
+
         // 设置submission的题目具体信息
         Problem byId = problemService.getById(submissionVO.getProblemId());
-        ProblemVO problemVO = ProblemVO.objToVo(byId);
-        submissionVO.setProblemVO(problemVO);
+        ProblemVO problemVO = ProblemVO.objToVoWithoutContent(byId);
+        submissionVO.setProblemId(problemVO.getId());
+        submissionVO.setProblemTitle(problemVO.getTitle());
+
         // 设置submission的提交User信息
         User user = userService.getById(submissionVO.getUserId());
         UserVO userVO = UserVO.objToVo(user);
-        submissionVO.setUserVO(userVO);
-        submissionVO.setProblemVO(problemVO);
-        // 先不进行实际脱敏
+        submissionVO.setUserId(userVO.getId());
+        submissionVO.setUserAccount(userVO.getUserAccount());
+
         return submissionVO;
     }
 
@@ -178,29 +206,8 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
                 submissionPage.getSize(), submissionPage.getTotal());
         // 不进行用户关联
         List<SubmissionVO> submissionVOList = submissionList.stream().map(submission -> {
-            return getSubmissionVO(submission);
+            return submissionToVO(submission);
         }).collect(Collectors.toList());
-//        if (CollUtil.isEmpty(submissionList)) {
-//            return submissionVOPage;
-//        }
-//        // 1. 根据当前页面所有的submission查询所有的user id
-//        Set<Long> userIdSet = submissionList.stream().map(Submission::getUserId).collect(Collectors.toSet());
-//        // listByIds 根据多个id查询用户
-//        // 形成 userId -> User 的Map
-//        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
-//                .collect(Collectors.groupingBy(User::getId));
-//        // 2. 已登录，获取用户点赞、收藏状态
-//        // 填充信息
-//        List<SubmissionVO> submissionVOList = submissionList.stream().map(submission -> {
-//            SubmissionVO submissionVO = SubmissionVO.objToVo(submission);
-//            Long userId = submission.getUserId();
-//            User user = null;
-//            if (userIdUserListMap.containsKey(userId)) {
-//                user = userIdUserListMap.get(userId).get(0);
-//            }
-//            submissionVO.setUserVO(userService.getUserVO(user));
-//            return submissionVO;
-//        }).collect(Collectors.toList());
         submissionVOPage.setRecords(submissionVOList);
         return submissionVOPage;
     }

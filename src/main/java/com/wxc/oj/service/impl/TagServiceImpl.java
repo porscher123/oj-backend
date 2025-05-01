@@ -2,9 +2,7 @@ package com.wxc.oj.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wxc.oj.model.entity.Problem;
-import com.wxc.oj.model.entity.Tag;
-import com.wxc.oj.model.vo.ProblemVO;
+import com.wxc.oj.model.po.Tag;
 import com.wxc.oj.service.TagService;
 import com.wxc.oj.mapper.TagMapper;
 import jakarta.annotation.Resource;
@@ -55,6 +53,7 @@ TagServiceImpl extends ServiceImpl<TagMapper, Tag>
     public List<Long> getProblemIdsByTagNames(List<String> tagNames) {
         List<Integer> tagIdsByTagsName = this.getTagIdsByTagsName(tagNames);
         List<Long> problemIds = this.getProblemIdsByTagIds(tagIdsByTagsName);
+//        List<Long> problemIds = tagMapper.getProblemIdsByTagNames(tagNames);
         return problemIds;
     }
 }

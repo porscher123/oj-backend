@@ -11,9 +11,9 @@ import com.wxc.oj.constant.Level;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ProblemMapper;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
-import com.wxc.oj.model.entity.Problem;
-import com.wxc.oj.model.entity.Tag;
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.Problem;
+import com.wxc.oj.model.po.Tag;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.UserVO;
@@ -22,12 +22,10 @@ import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
 * @author 王新超
@@ -66,6 +64,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
     /**
      * 根据请求的封装对象获取查询包装类
+     * 前端会根据题目的标题,内容,难度,标签进行查询
      * @param problemQueryRequest
      * @return
      */
@@ -86,16 +85,19 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
 //        log.info("💕💕💕💕💕💕💕💕" + problemIds.toString() + "💕💕💕💕💕💕");
 
-        String level = problemQueryRequest.getLevel();
+        Integer level = problemQueryRequest.getLevel();
         String sortField = problemQueryRequest.getSortField();
         String sortOrder = problemQueryRequest.getSortOrder();
         if (sortOrder == null) {
             sortOrder = CommonConstant.SORT_ORDER_ASC;
         }
-
+        if (sortField == null) {
+            sortField = "id";
+        }
         // 拼接查询条件
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title)
-                .eq(StringUtils.isNotBlank(level) && checkLevel(level),"level", level);
+                .like(StringUtils.isNotBlank(title), "content", title)
+                .eq(level != null && level != 6,"level", level);
 
 
 
@@ -142,9 +144,32 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
      * @return
      */
     @Override
-    public ProblemVO getProblemVO(Problem problem) {
+    public ProblemVO getProblemVOWithoutContent(Problem problem) {
         // 将entity转为vo
-        ProblemVO problemVO = ProblemVO.objToVo(problem);
+        ProblemVO problemVO = ProblemVO.objToVoWithoutContent(problem);
+        // 补充vo的信息
+        Long userId = problem.getUserId();
+        User user = null;
+        if (userId != null && userId > 0) {
+            user = userService.getById(userId);
+        }
+        UserVO userVO = userService.getUserVO(user);
+        List<Tag> tags = tagService.listTagsByProblemId(problem.getId());
+        problemVO.setTags(tags);
+        problemVO.setUserVO(userVO);
+        return problemVO;
+    }
+    /**
+     * 生成要返回给前端的VO对象
+     * 进行了数据脱敏
+     * 题目对应的用户信息和标签信息需要再次查询
+     * @param problem
+     * @return
+     */
+    @Override
+    public ProblemVO getProblemVOWithContent(Problem problem) {
+        // 将entity转为vo
+        ProblemVO problemVO = ProblemVO.objToVoWithContent(problem);
         // 补充vo的信息
         Long userId = problem.getUserId();
         User user = null;
@@ -165,7 +190,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     public List<ProblemVO> getProblemVO(List<Problem> problemList) {
         ArrayList<ProblemVO> problemVOList = new ArrayList<>();
         for (Problem problem : problemList) {
-            ProblemVO problemVO = getProblemVO(problem);
+            ProblemVO problemVO = getProblemVOWithoutContent(problem);
             problemVOList.add(problemVO);
         }
         return problemVOList;

@@ -3,7 +3,7 @@ package com.wxc.oj.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
-import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.po.Problem;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wxc.oj.model.vo.ProblemVO;
 
@@ -39,7 +39,8 @@ public interface ProblemService extends IService<Problem> {
      * @param post
      * @return
      */
-    ProblemVO getProblemVO(Problem post);
+    ProblemVO getProblemVOWithContent(Problem post);
+    ProblemVO getProblemVOWithoutContent(Problem post);
 
     List<ProblemVO> getProblemVO(List<Problem> problemList);
 

@@ -1,7 +1,7 @@
 package com.wxc.oj.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wxc.oj.model.entity.ContestProblem;
+import com.wxc.oj.model.po.ContestProblem;
 import com.wxc.oj.service.ContestProblemService;
 import com.wxc.oj.mapper.ContestProblemMapper;
 import org.springframework.stereotype.Service;

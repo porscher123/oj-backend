@@ -22,7 +22,7 @@ public class ProblemQueryRequest extends PageRequest implements Serializable {
 
     private List<String> tags;
     private Long userId;
-    private String level;
+    private Integer level;
 
 
     private static final long serialVersionUID = 1L;

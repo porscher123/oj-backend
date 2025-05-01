@@ -1,6 +1,6 @@
 package com.wxc.oj.mapper;
 
-import com.wxc.oj.model.entity.ContestRegistration;
+import com.wxc.oj.model.po.ContestRegistration;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

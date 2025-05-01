@@ -1,4 +1,4 @@
-package com.wxc.oj.model.entity;
+package com.wxc.oj.model.po;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -20,7 +20,9 @@ public class Submission implements Serializable {
     private Long problemId;
 
     private String sourceCode;
-
+    /**
+     * JSON字符串
+     */
     private String submissionResult;
 
     /**

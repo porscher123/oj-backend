@@ -9,6 +9,8 @@ import java.util.Date;
 
 /**
  * 查询提交的DTO
+ * 供前端进行筛选查询，可以根据
+ * submission的ID，用户，语言，评测结果（ACCEPTED, WRONG ANSWER...）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -21,10 +23,6 @@ public class SubmissionQueryDTO extends PageRequest implements Serializable {
     private String language;
 
     private String JudgeResult;
-
-
-    private Date createTime;
-
 
     private static final long serialVersionUID = 1L;
 }

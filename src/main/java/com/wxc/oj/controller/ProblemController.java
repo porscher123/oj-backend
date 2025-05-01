@@ -7,24 +7,21 @@ import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.DeleteRequest;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
+import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.model.dto.problem.ProblemAddRequest;
 import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
-import com.wxc.oj.exception.BusinessException;
-import com.wxc.oj.exception.ThrowUtils;
-import com.wxc.oj.model.entity.Problem;
-import com.wxc.oj.model.entity.Tag;
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.Problem;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.service.ProblemService;
-import com.wxc.oj.service.TagService;
 import com.wxc.oj.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -223,15 +220,15 @@ public class ProblemController {
         problemService.updateById(problem);
         Problem newProblem = problemService.getById(oldProblem.getId());
 
-        return ResultUtils.success(problemService.getProblemVO(newProblem));
+        return ResultUtils.success(problemService.getProblemVOWithContent(newProblem));
     }
 
     /**
      * 根据 id 获取题目
      * GET方法
      */
-    @GetMapping("/get/vo")
-    public BaseResponse<ProblemVO> getProblemVOById(Long id) {
+    @GetMapping("/get/vo/{id}")
+    public BaseResponse<ProblemVO> getProblemVOById(@PathVariable Long id) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -239,7 +236,8 @@ public class ProblemController {
         if (problem == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        return ResultUtils.success(problemService.getProblemVO(problem));
+        ProblemVO problemVOWithContent = problemService.getProblemVOWithContent(problem);
+        return ResultUtils.success(problemVOWithContent);
     }
 
     /**

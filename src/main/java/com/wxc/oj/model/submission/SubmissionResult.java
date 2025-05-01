@@ -14,15 +14,17 @@ import java.util.List;
  */
 @Data
 public class SubmissionResult {
+    /**
+     * 状态
+     */
+    private Integer status;
 
+    private String statusDescription;
     /**
      * 得分
      */
     private Integer score;
-    /**
-     * 状态
-     */
-    private String status;
+
     /**
      * 总用时
      */
@@ -31,8 +33,6 @@ public class SubmissionResult {
      * 总内存空间
      */
     private Long memoryUsed;
-
-    private Integer codeLength;
 
     private List<JudgeCaseResult> judgeCaseResults;
 }

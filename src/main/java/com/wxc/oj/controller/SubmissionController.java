@@ -10,8 +10,8 @@ import com.wxc.oj.common.ResultUtils;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
-import com.wxc.oj.model.entity.Submission;
-import com.wxc.oj.model.entity.User;
+import com.wxc.oj.model.po.Submission;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.model.vo.SubmissionVO;
 import com.wxc.oj.service.SubmissionService;
 import com.wxc.oj.service.UserService;
@@ -61,7 +61,8 @@ public class SubmissionController {
      * 分页获取submission
      */
     @PostMapping("/list/page")
-    public BaseResponse listSubmissionByPage(@RequestBody SubmissionQueryDTO submissionQueryDTO) {
+    public BaseResponse<Page<SubmissionVO>> listSubmissionByPage(@RequestBody
+                                                         SubmissionQueryDTO submissionQueryDTO) {
         long current = submissionQueryDTO.getCurrent();
         long size = submissionQueryDTO.getPageSize();
         Page<Submission> submissionPage = submissionService.page(new Page<>(current, size),
@@ -69,23 +70,23 @@ public class SubmissionController {
         Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(submissionPage);
         return ResultUtils.success(submissionVOPage);
     }
-    /**
-     * 分页获取submission
-     */
-    @GetMapping("/get/page")
-    public BaseResponse getSubmissionPage(Long id) {
-        long current = 1;
-        long size = 1;
-        Submission byId = submissionService.getById(id);
-        SubmissionVO submissionVO = SubmissionVO.objToVo(byId);
-        ArrayList<SubmissionVO> submissionVOS = new ArrayList<>();
-        QueryWrapper<Submission> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", id);
-        Page<Submission> page = submissionService.page(new Page<>(current, size), queryWrapper);
-        submissionVOS.add(submissionVO);
-        Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(page);
-        return ResultUtils.success(submissionVOPage);
-    }
+//    /**
+//     * 分页获取submission
+//     */
+//    @GetMapping("/get/page")
+//    public BaseResponse getSubmissionPage(Long id) {
+//        long current = 1;
+//        long size = 1;
+//        Submission byId = submissionService.getById(id);
+//        SubmissionVO submissionVO = SubmissionVO.objToVo(byId);
+//        ArrayList<SubmissionVO> submissionVOS = new ArrayList<>();
+//        QueryWrapper<Submission> queryWrapper = new QueryWrapper<>();
+//        queryWrapper.eq("id", id);
+//        Page<Submission> page = submissionService.page(new Page<>(current, size), queryWrapper);
+//        submissionVOS.add(submissionVO);
+//        Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(page);
+//        return ResultUtils.success(submissionVOPage);
+//    }
     /**
      * 分页获取特定用户的submission
      */
@@ -100,7 +101,7 @@ public class SubmissionController {
     @GetMapping("/get")
     public BaseResponse getSubmission(Long id) {
         Submission byId = submissionService.getById(id);
-        SubmissionVO submissionVO = SubmissionVO.objToVo(byId);
+        SubmissionVO submissionVO = submissionService.submissionToVO(byId);
         return ResultUtils.success(submissionVO);
     }
 }

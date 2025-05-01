@@ -1,18 +1,10 @@
 package com.wxc.oj;
 
-import cn.hutool.json.JSONUtil;
-import com.wxc.oj.model.entity.Contest;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessagePostProcessor;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
-
-import java.nio.channels.Channel;
-import java.util.Date;
 
 @SpringBootTest
 class OjApplicationTests {

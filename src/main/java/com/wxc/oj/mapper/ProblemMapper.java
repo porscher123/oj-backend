@@ -1,6 +1,6 @@
 package com.wxc.oj.mapper;
 
-import com.wxc.oj.model.entity.Problem;
+import com.wxc.oj.model.po.Problem;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**
