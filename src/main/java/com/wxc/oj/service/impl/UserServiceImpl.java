@@ -123,7 +123,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 使用userID生成载荷
         String userJsonStr = JSONUtil.toJsonStr(user);
         // 用户登陆成功后, 将用户信息保存到redis中, 用户id作为key, 用户json字符串作为value
-        stringRedisTemplate.opsForValue().set("user:" + user.getId(), userJsonStr, 1, TimeUnit.DAYS);
+        stringRedisTemplate.opsForValue().set("user:" + user.getId(), userJsonStr, 7, TimeUnit.DAYS);
         UserVO userVO = new UserVO();
         copyProperties(user, userVO);
 //        String token = JwtUtils.createToken(userVO);

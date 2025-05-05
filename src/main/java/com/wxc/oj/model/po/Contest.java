@@ -34,5 +34,9 @@ public class Contest implements Serializable {
 
     private Integer isDeleted;
 
+    private Long hostId;
+
+    private Integer canRegister;
+
     private static final long serialVersionUID = 1L;
 }

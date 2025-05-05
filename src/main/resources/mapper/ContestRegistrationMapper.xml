@@ -11,12 +11,10 @@
             <result property="createdTime" column="created_time" jdbcType="TIMESTAMP"/>
             <result property="updatedTime" column="updated_time" jdbcType="TIMESTAMP"/>
             <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
-            <result property="status" column="status" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,user_id,contest_id,
-        created_time,updated_time,is_deleted,
-        status
+        created_time,updated_time,is_deleted
     </sql>
 </mapper>

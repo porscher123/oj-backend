@@ -96,20 +96,6 @@ public class ProblemVO implements Serializable {
         return problemVO;
     }
 
-    /**
-     * 查询单个problem，返回具体题目描述信息
-     * @param problem
-     * @return
-     */
-    public static ProblemVO objToVoWithContent(Problem problem) {
-        if (problem == null) {
-            return null;
-        }
-        ProblemVO problemVO = new ProblemVO();
-        BeanUtils.copyProperties(problem, problemVO);
-        // vo的tags时List<String>, 要将pojo的JSON String 转换
-        // 将pojo的json字符串转为JudgeConfig类
-        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
-        return problemVO;
-    }
+
+
 }

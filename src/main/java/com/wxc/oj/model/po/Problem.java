@@ -3,6 +3,7 @@ package com.wxc.oj.model.po;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.lettuce.core.output.ListOfGenericMapsOutput;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -60,9 +61,10 @@ public class Problem implements Serializable {
     private Date updateTime;
 
 
-    private Integer isDelete;
+    private Integer isDeleted;
 
     private Integer onlyContest;
+
 
     private static final long serialVersionUID = 1L;
 }

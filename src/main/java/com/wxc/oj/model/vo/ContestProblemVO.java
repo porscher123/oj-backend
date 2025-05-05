@@ -5,9 +5,9 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class ContestProblemVO implements Serializable {
+public class ContestProblemVO extends ProblemVO implements Serializable  {
 
-
+    private Integer pindex;
 
 
 

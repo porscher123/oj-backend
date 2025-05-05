@@ -34,10 +34,12 @@ public class JudgeCaseResult {
 
     /**
      * 这次提交的时间消耗
+     * 单位：ms
      */
     private Long timeCost;
     /**
      * 使用的内存
+     * 单位 B
      */
     private Long memoryUsed;
 }

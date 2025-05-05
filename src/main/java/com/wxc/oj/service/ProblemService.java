@@ -42,7 +42,7 @@ public interface ProblemService extends IService<Problem> {
     ProblemVO getProblemVOWithContent(Problem post);
     ProblemVO getProblemVOWithoutContent(Problem post);
 
-    List<ProblemVO> getProblemVO(List<Problem> problemList);
+    List<ProblemVO> getProblemVOListByProblemList(List<Problem> problemList);
 
     /**
      * 分页获取帖子封装

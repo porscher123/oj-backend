@@ -1,6 +1,7 @@
 package com.wxc.oj.model.po;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.util.Date;
@@ -23,9 +24,9 @@ public class ContestRegistration implements Serializable {
 
     private Date updatedTime;
 
+
     private Integer isDeleted;
 
-    private Integer status;
 
     private static final long serialVersionUID = 1L;
 }

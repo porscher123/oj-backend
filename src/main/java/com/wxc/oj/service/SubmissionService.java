@@ -17,7 +17,7 @@ import com.wxc.oj.model.vo.SubmissionVO;
 public interface SubmissionService extends IService<Submission> {
 
 
-    Submission submitCode(SubmissionAddRequest submissionAddRequest, User loginUser);
+    SubmissionVO submitCode(SubmissionAddRequest submissionAddRequest, User loginUser);
 
     LambdaQueryWrapper<Submission> getQueryWrapper(SubmissionQueryDTO submissionQueryDTO);
 

@@ -46,47 +46,34 @@ public class SubmissionController {
      * @return 提交的submission id
      */
     @PostMapping("submit")
-    public BaseResponse doSubmit(@RequestBody SubmissionAddRequest submissionAddRequest, HttpServletRequest request) throws IOException {
+    public BaseResponse<SubmissionVO> doSubmit(@RequestBody SubmissionAddRequest submissionAddRequest,
+                                               HttpServletRequest request) throws IOException {
         if (submissionAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 获取当前用户
         User loginUser = userService.getLoginUser(request);
         // 执行插入submission操作
-        Submission submission = submissionService.submitCode(submissionAddRequest, loginUser);
+        SubmissionVO submission = submissionService.submitCode(submissionAddRequest, loginUser);
         return ResultUtils.success(submission);
     }
 
     /**
      * 分页获取submission
+     * 按CreateTime降序排序
      */
     @PostMapping("/list/page")
     public BaseResponse<Page<SubmissionVO>> listSubmissionByPage(@RequestBody
                                                          SubmissionQueryDTO submissionQueryDTO) {
         long current = submissionQueryDTO.getCurrent();
         long size = submissionQueryDTO.getPageSize();
-        Page<Submission> submissionPage = submissionService.page(new Page<>(current, size),
-                submissionService.getQueryWrapper(submissionQueryDTO));
+        LambdaQueryWrapper<Submission> queryWrapper
+                = submissionService.getQueryWrapper(submissionQueryDTO);
+        queryWrapper.orderByDesc(Submission::getCreateTime);
+        Page<Submission> submissionPage = submissionService.page(new Page<>(current, size), queryWrapper);
         Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(submissionPage);
         return ResultUtils.success(submissionVOPage);
     }
-//    /**
-//     * 分页获取submission
-//     */
-//    @GetMapping("/get/page")
-//    public BaseResponse getSubmissionPage(Long id) {
-//        long current = 1;
-//        long size = 1;
-//        Submission byId = submissionService.getById(id);
-//        SubmissionVO submissionVO = SubmissionVO.objToVo(byId);
-//        ArrayList<SubmissionVO> submissionVOS = new ArrayList<>();
-//        QueryWrapper<Submission> queryWrapper = new QueryWrapper<>();
-//        queryWrapper.eq("id", id);
-//        Page<Submission> page = submissionService.page(new Page<>(current, size), queryWrapper);
-//        submissionVOS.add(submissionVO);
-//        Page<SubmissionVO> submissionVOPage = submissionService.getSubmissionVOPage(page);
-//        return ResultUtils.success(submissionVOPage);
-//    }
     /**
      * 分页获取特定用户的submission
      */

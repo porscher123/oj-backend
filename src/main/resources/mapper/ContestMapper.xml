@@ -15,12 +15,15 @@
             <result property="createdTime" column="created_time" jdbcType="TIMESTAMP"/>
             <result property="updatedTime" column="updated_time" jdbcType="TIMESTAMP"/>
             <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
+            <result property="hostId" column="host_id" jdbcType="BIGINT"/>
+            <result property="canRegister" column="can_register" jdbcType="TINYINT"/>
+
     </resultMap>
 
     <sql id="Base_Column_List">
         id,title,description,
         start_time,duration,status,
         is_public,created_time,updated_time,
-        is_deleted
+        is_deleted,host_id,can_register
     </sql>
 </mapper>

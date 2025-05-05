@@ -268,11 +268,8 @@ public class ProblemController {
     public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
         long current = problemQueryRequest.getCurrent();
         long size = problemQueryRequest.getPageSize();
-        System.out.println("***************" + current + "       " + size);
         Page<Problem> problemPage = problemService.page(new Page<>(current, size),
                 problemService.getQueryWrapper(problemQueryRequest));
-        long total = problemPage.getTotal();
-        System.out.println("************************" + total);
         return ResultUtils.success(problemPage);
     }
 

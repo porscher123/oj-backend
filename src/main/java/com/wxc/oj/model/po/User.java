@@ -35,7 +35,7 @@ public class User implements Serializable {
 
     private Date updateTime;
 
-    private Integer isDelete;
+    private Integer isDeleted;
 
     private static final long serialVersionUID = 1L;
 }

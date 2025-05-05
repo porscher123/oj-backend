@@ -1,6 +1,7 @@
 package com.wxc.oj.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,6 +12,7 @@ import com.wxc.oj.constant.Level;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ProblemMapper;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.po.Problem;
 import com.wxc.oj.model.po.Tag;
 import com.wxc.oj.model.po.User;
@@ -26,6 +28,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+
+import static org.springframework.beans.BeanUtils.copyProperties;
 
 /**
 * @author 王新超
@@ -146,7 +150,9 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     @Override
     public ProblemVO getProblemVOWithoutContent(Problem problem) {
         // 将entity转为vo
-        ProblemVO problemVO = ProblemVO.objToVoWithoutContent(problem);
+        ProblemVO problemVO = new ProblemVO();
+        copyProperties(problem, problemVO);
+        problemVO.setContent(null);
         // 补充vo的信息
         Long userId = problem.getUserId();
         User user = null;
@@ -155,6 +161,8 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         }
         UserVO userVO = userService.getUserVO(user);
         List<Tag> tags = tagService.listTagsByProblemId(problem.getId());
+        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
+
         problemVO.setTags(tags);
         problemVO.setUserVO(userVO);
         return problemVO;
@@ -169,7 +177,8 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     @Override
     public ProblemVO getProblemVOWithContent(Problem problem) {
         // 将entity转为vo
-        ProblemVO problemVO = ProblemVO.objToVoWithContent(problem);
+        ProblemVO problemVO = new ProblemVO();
+        copyProperties(problem, problemVO);
         // 补充vo的信息
         Long userId = problem.getUserId();
         User user = null;
@@ -180,6 +189,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         List<Tag> tags = tagService.listTagsByProblemId(problem.getId());
         problemVO.setTags(tags);
         problemVO.setUserVO(userVO);
+        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
         return problemVO;
     }
     /**
@@ -187,7 +197,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
      * 进行了数据脱敏
      */
     @Override
-    public List<ProblemVO> getProblemVO(List<Problem> problemList) {
+    public List<ProblemVO> getProblemVOListByProblemList(List<Problem> problemList) {
         ArrayList<ProblemVO> problemVOList = new ArrayList<>();
         for (Problem problem : problemList) {
             ProblemVO problemVO = getProblemVOWithoutContent(problem);
@@ -210,7 +220,7 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         if (CollUtil.isEmpty(problemList)) {
             return problemVOPage;
         }
-        List<ProblemVO> problemVOList = getProblemVO(problemList);
+        List<ProblemVO> problemVOList = getProblemVOListByProblemList(problemList);
         problemVOPage.setRecords(problemVOList);
         return problemVOPage;
     }

@@ -24,6 +24,7 @@ import com.wxc.oj.sandbox.dto.Cmd;
 import com.wxc.oj.sandbox.dto.SandBoxRequest;
 import com.wxc.oj.sandbox.dto.SandBoxResponse;
 import com.wxc.oj.sandbox.enums.SandBoxResponseStatus;
+import com.wxc.oj.sandbox.model.FileError;
 import com.wxc.oj.sandbox.model.LanguageConfig;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.SubmissionService;
@@ -71,7 +72,7 @@ public class JudgeServiceImpl implements JudgeService {
     /**
      * 时间限制10s
      */
-    public static final Long CPU_LIMIT = 10000000000L;
+    public static final Long CPU_LIMIT = 2_000_000_000L;
     /**
      * 内存限制512MB
      */
@@ -97,22 +98,17 @@ public class JudgeServiceImpl implements JudgeService {
      * @return
      * @throws IOException
      */
-    public String compileCppFile(String sourceCode) throws IOException {
-        SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
-        log.info(sandBoxResponse.toString());
-        // 获取返回得文件id
-        Map<String, String> fileIds = sandBoxResponse.getFileIds();
-        if (!sandBoxResponse.getStatus().equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
-            log.info("❗❗❗编译失败❗❗❗");
-//            log.info(sandBoxResponse.getStatus());
-//            log.info(sandBoxResponse.getError());
-            return null;
-        }
-        log.info("编译成功");
-        String exeId = fileIds.get("main");
-//        log.info("可执行文件id = " + exeId);
-        return exeId;
-    }
+//    public String compileCppFile(String sourceCode) throws IOException {
+//        SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
+//        log.info(sandBoxResponse.toString());
+//        // 获取返回得文件id
+//        Map<String, String> fileIds = sandBoxResponse.getFileIds();
+//        if (!sandBoxResponse.getStatus().equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
+//            return ;
+//        }
+//        String exeId = fileIds.get("main");
+//        return exeId;
+//    }
 
     private boolean changeStatus(Submission submissionUpd,  SubmissionResult submissionResult, SubmissionStatus statusUpd) {
         submissionResult.setStatus(statusUpd.getStatus());
@@ -139,15 +135,23 @@ public class JudgeServiceImpl implements JudgeService {
         this.changeStatus(submission, submissionResult, SubmissionStatus.COMPILING);
 
 
-        String exeId = compileCppFile(sourceCode);
-        if (exeId == null) {
+//        String exeId = compileCppFile(sourceCode);
+        SandBoxResponse sandBoxResponse = compileCode(sourceCode, LanguageConfigs.CPP);
+        // 获取返回得文件id
+        if (!sandBoxResponse.getStatus().equals(SandBoxResponseStatus.ACCEPTED.getValue())) {
             // 返回编译错误
+            submissionResult.setTotalTime(0L);
+            submissionResult.setMemoryUsed(0L);
+            submissionResult.setScore(0);
+            submissionResult.setCompileErrorMessage(sandBoxResponse.getError());
             boolean b = this.changeStatus(submission, submissionResult, SubmissionStatus.COMPILE_ERROR);
             if (!b) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
             }
             return;
         }
+        Map<String, String> fileIds = sandBoxResponse.getFileIds();
+        String exeId = fileIds.get("main");
         // 编译成功，修改状态为JUDGING
         this.changeStatus(submission, submissionResult, SubmissionStatus.JUDGING);
 
@@ -234,6 +238,12 @@ public class JudgeServiceImpl implements JudgeService {
                     judgeCaseResult.setJudgeResult(JudgeResultEnum.MEMORY_LIMIT_EXCEEDED.getValue());
                     judgeCaseResult.setGainScore(0);
                 }
+            } else if (status.equals(SandBoxResponseStatus.TIME_LIMIT_EXCEEDED.getValue())){
+                judgeCaseResult.setJudgeResult(JudgeResultEnum.TIME_LIMIT_EXCEEDED.getValue());
+                judgeCaseResult.setGainScore(0);
+            } else if (status.equals(SandBoxResponseStatus.MEMORY_LIMIT_EXCEEDED.getValue())) {
+                judgeCaseResult.setJudgeResult(JudgeResultEnum.MEMORY_LIMIT_EXCEEDED.getValue());
+                judgeCaseResult.setGainScore(0);
             } else {
                 judgeCaseResult.setJudgeResult(JudgeResultEnum.WRONG_ANSWER.getValue());
                 judgeCaseResult.setGainScore(0);
@@ -277,7 +287,15 @@ public class JudgeServiceImpl implements JudgeService {
         if (totalScore == 100) {
             this.changeStatus(submission, submissionResult, SubmissionStatus.ACCEPTED);
         } else {
-            this.changeStatus(submission, submissionResult, SubmissionStatus.WRONG_ANSWER);
+            for (JudgeCaseResult judgeCaseResult : judgeCaseResults) {
+                if (judgeCaseResult.getJudgeResult().equals(JudgeResultEnum.TIME_LIMIT_EXCEEDED.getValue())) {
+                    this.changeStatus(submission, submissionResult, SubmissionStatus.TIME_LIMIT_EXCEEDED);
+                    break;
+                } else if (judgeCaseResult.getJudgeResult().equals(JudgeResultEnum.WRONG_ANSWER.getValue())) {
+                    this.changeStatus(submission, submissionResult, SubmissionStatus.WRONG_ANSWER);
+                    break;
+                }
+            }
         }
     }
 

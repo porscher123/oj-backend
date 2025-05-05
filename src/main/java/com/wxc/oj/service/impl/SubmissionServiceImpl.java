@@ -69,11 +69,13 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
      * @return 插入的submission的id
      */
     @Override
-    public Submission submitCode(SubmissionAddRequest submissionAddRequest, User loginUser) {
+    public SubmissionVO submitCode(SubmissionAddRequest submissionAddRequest, User loginUser) {
         if (submissionAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        log.info(submissionAddRequest.toString());
+        if (StringUtils.isBlank(submissionAddRequest.getSourceCode())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
         // 检查编程语言是否存在
         String language = submissionAddRequest.getLanguage();
         log.info("language = " + language);
@@ -133,7 +135,8 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         this.updateById(submission1);
         // 异步化了, 所以返回的还是刚开始的初始的submission
         Submission submission2 = this.getById(submission.getId());
-        return submission2;
+        SubmissionVO submissionVO = this.submissionToVO(submission2);
+        return submissionVO;
     }
 
 
@@ -150,19 +153,16 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
         Long problemId = submissionQueryDTO.getProblemId();
         Long userId = submissionQueryDTO.getUserId();
         String language = submissionQueryDTO.getLanguage();
-        String sortField = submissionQueryDTO.getSortField();
-        String sortOrder = submissionQueryDTO.getSortOrder();
-        if (sortOrder == null) {
-            sortOrder = CommonConstant.SORT_ORDER_ASC;
-        }
+
+//        String sortField = "createTime";
+//        String sortOrder = CommonConstant.SORT_ORDER_DESC;
+
         String judgeResult = submissionQueryDTO.getJudgeResult();
 
         queryWrapper.eq(ObjectUtils.isNotEmpty(problemId), "problemId", problemId)
                     .eq(ObjectUtils.isNotEmpty(userId), "userId", userId)
                     .eq(StringUtils.isNotBlank(language), "language", language)
                     .like(StringUtils.isNotBlank(judgeResult), "judgeInfo", judgeResult);
-        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
-                sortField);
         return queryWrapper.lambda();
     }
     /**
@@ -180,7 +180,7 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
 
         // 设置submission的题目具体信息
         Problem byId = problemService.getById(submissionVO.getProblemId());
-        ProblemVO problemVO = ProblemVO.objToVoWithoutContent(byId);
+        ProblemVO problemVO = problemService.getProblemVOWithoutContent(byId);
         submissionVO.setProblemId(problemVO.getId());
         submissionVO.setProblemTitle(problemVO.getTitle());
 

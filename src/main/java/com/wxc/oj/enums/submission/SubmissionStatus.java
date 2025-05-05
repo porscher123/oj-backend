@@ -17,6 +17,7 @@ public enum SubmissionStatus {
     JUDGING(4, "Judging"),
     ACCEPTED(5, "Accepted"),
     WRONG_ANSWER(6, "Wrong Answer"),
+    TIME_LIMIT_EXCEEDED(7, "Time Limit Exceeded"),
     RUNTIME_ERROR(11, "Runtime Error"),
     SYSTEM_ERROR(12, "System Error");
 

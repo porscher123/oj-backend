@@ -20,6 +20,8 @@ public class SubmissionResult {
     private Integer status;
 
     private String statusDescription;
+
+    private String compileErrorMessage;
     /**
      * 得分
      */

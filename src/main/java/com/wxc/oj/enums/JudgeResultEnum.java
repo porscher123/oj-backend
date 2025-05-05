@@ -18,11 +18,11 @@ public enum JudgeResultEnum {
      * +   Runtime Error运行错误(用户程序的问题).
      * +   System Error系统错误（做系统人的问题)
      */
-    ACCEPTED("ACCEPTED"),
-    WRONG_ANSWER("WRONG_ANSWER"),
-    COMPILE_ERROR("COMPILE_ERROR"),
-    MEMORY_LIMIT_EXCEEDED("MEMORY_LIMIT_EXCEEDED"),
-    TIME_LIMIT_EXCEEDED ("TIME_LIMIT_EXCEEDED"),
+    ACCEPTED("Accepted"),
+    WRONG_ANSWER("Wrong Answer"),
+    COMPILE_ERROR("Compile Error"),
+    MEMORY_LIMIT_EXCEEDED("Memory Limit Exceeded"),
+    TIME_LIMIT_EXCEEDED ("Time Limit Exceeded"),
     PRESENTATION_ERROR("PRESENTATION_ERROR"),
     OUTPUT_LIMIT_EXCEEDED("OUTPUT_LIMIT_EXCEEDED"),
     RUNTIME_ERROR("RUNTIME_ERROR");
