@@ -16,6 +16,7 @@ import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.po.Problem;
 import com.wxc.oj.model.po.Tag;
 import com.wxc.oj.model.po.User;
+import com.wxc.oj.model.queueMessage.ProblemMessage;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.UserVO;
@@ -25,6 +26,7 @@ import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -45,6 +47,14 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
     @Resource
     private TagService tagService;
+
+
+
+
+
+
+
+
 
     private boolean checkLevel(String level) {
         Set<String> levels = new HashSet<>();

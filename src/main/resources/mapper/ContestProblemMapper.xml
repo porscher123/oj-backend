@@ -12,11 +12,12 @@
             <result property="createdTime" column="created_time" jdbcType="TIMESTAMP"/>
             <result property="updatedTime" column="updated_time" jdbcType="TIMESTAMP"/>
             <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
+            <result property="fullScore" column="full_score" jdbcType="INTEGER"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,contest_id,problem_id,
         pindex,created_time,updated_time,
-        is_deleted
+        is_deleted,full_score
     </sql>
 </mapper>

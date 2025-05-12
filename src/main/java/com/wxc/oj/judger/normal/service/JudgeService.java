@@ -1,4 +1,4 @@
-package com.wxc.oj.judger.service;
+package com.wxc.oj.judger.normal.service;
 
 import com.wxc.oj.model.judge.JudgeCaseResult;
 import com.wxc.oj.sandbox.dto.SandBoxResponse;
@@ -14,5 +14,4 @@ public interface JudgeService {
 
     SandBoxResponse compileCode(String sourceCode, LanguageConfig languageConfig) throws IOException;
 
-    Integer getScore(List<JudgeCaseResult> judgeInfos);
 }

@@ -1,6 +1,8 @@
 package com.wxc.oj.model.vo;
 
 import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.model.po.Submission;
 import com.wxc.oj.model.submission.SubmissionResult;
@@ -18,6 +20,8 @@ public class SubmissionVO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     private Long userId;

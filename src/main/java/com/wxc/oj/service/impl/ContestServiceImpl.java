@@ -7,15 +7,18 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.PageRequest;
+import com.wxc.oj.enums.JudgeResultEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ContestMapper;
 import com.wxc.oj.mapper.ContestProblemMapper;
 import com.wxc.oj.mapper.ContestRegistrationMapper;
 import com.wxc.oj.model.po.*;
-import com.wxc.oj.model.vo.ContestProblemVO;
-import com.wxc.oj.model.vo.ContestVO;
-import com.wxc.oj.model.vo.ProblemVO;
-import com.wxc.oj.queueMessage.ContestMessage;
+import com.wxc.oj.model.submission.SubmissionResult;
+import com.wxc.oj.model.vo.*;
+import com.wxc.oj.model.queueMessage.ContestMessage;
+import com.wxc.oj.model.vo.rank.RankListVO;
+import com.wxc.oj.model.vo.rank.RankProblemVO;
+import com.wxc.oj.model.vo.rank.RankItem;
 import com.wxc.oj.service.*;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,9 +30,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
 
@@ -69,6 +71,10 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
 
     @Resource
     UserService userService;
+
+
+    @Resource
+    ContestSubmissionService contestSubmissionService;
 
     /**
      * contest在状态0时的操作:
@@ -432,8 +438,26 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
 //        return problemVOList;
 //    }
 
+
     @Override
-    public List<ContestProblemVO> getContestProblemVOListByContestId(Long contestId) {
+    public ContestProblemVO contestProblemToVO(ContestProblem contestProblem) {
+        Long problemId = contestProblem.getProblemId();
+        Problem problem = problemService.getById(problemId);
+        if (problem == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "题目不存在");
+        }
+        ProblemVO problemVO = problemService.getProblemVOWithoutContent(problem);
+        ContestProblemVO contestProblemVO = new ContestProblemVO();
+        BeanUtils.copyProperties(problemVO, contestProblemVO);
+        contestProblemVO.setPindex(contestProblem.getPindex());
+        contestProblemVO.setFullScore(contestProblem.getFullScore());
+        return contestProblemVO;
+    }
+
+
+
+    @Override
+    public List<ContestProblemVO> getContestProblemVOListByContestId(Long contestId, Long userId) {
         List<ContestProblemVO> contestProblemVOList = new ArrayList<>();
         QueryWrapper<ContestProblem> queryWrapper
                 = new QueryWrapper<ContestProblem>().eq("contest_id", contestId);
@@ -443,16 +467,139 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
             return new ArrayList<>();
         }
         for (ContestProblem contestProblem : contestProblemList) {
+            ContestProblemVO contestProblemVO = this.contestProblemToVO(contestProblem);
             Long problemId = contestProblem.getProblemId();
-            Problem problem = problemService.getById(problemId);
-            if (problem == null) continue;
-            ProblemVO problemVO = problemService.getProblemVOWithoutContent(problem);
-            ContestProblemVO contestProblemVO = new ContestProblemVO();
-            BeanUtils.copyProperties(problemVO, contestProblemVO);
-            contestProblemVO.setPindex(contestProblem.getPindex());
+            LambdaQueryWrapper<ContestSubmission> queryWrapper1 = new LambdaQueryWrapper<>();
+            queryWrapper1.eq(ContestSubmission::getContestId, contestId)
+                    .eq(ContestSubmission::getUserId, userId)
+                    .eq(ContestSubmission::getProblemId, problemId);
+            List<ContestSubmission> contestSubmissionList = contestSubmissionService.list(queryWrapper1);
+            int maxScore = 0;
+            if (CollUtil.isNotEmpty(contestSubmissionList)) {
+                for (ContestSubmission contestSubmission : contestSubmissionList) {
+                    ContestSubmissionVO contestSubmissionVO = contestSubmissionService.contestSubmissionToVO(contestSubmission);
+                    maxScore  = Math.max(maxScore, contestSubmissionVO.getSubmissionResult().getScore());
+                }
+                contestProblemVO.setGainScore(maxScore * contestProblemVO.getFullScore() / 100);
+            }
             contestProblemVOList.add(contestProblemVO);
         }
+
         return contestProblemVOList;
+    }
+
+
+
+
+    @Override
+    public ContestProblemVO getContestProblemByIndex(Long contestId, Integer index) {
+        QueryWrapper<ContestProblem> queryWrapper
+                = new QueryWrapper<ContestProblem>().eq("contest_id", contestId)
+                .eq("pindex", index);
+        ContestProblem contestProblem = contestProblemService.getOne(queryWrapper);
+        if (contestProblem == null) {
+            return null;
+        }
+        Long problemId = contestProblem.getProblemId();
+        Problem problem = problemService.getById(problemId);
+        if (problem == null) {
+            return null;
+        }
+        ProblemVO problemVO = problemService.getProblemVOWithContent(problem);
+        ContestProblemVO contestProblemVO = new ContestProblemVO();
+        BeanUtils.copyProperties(problemVO, contestProblemVO);
+        contestProblemVO.setPindex(contestProblem.getPindex());
+        contestProblemVO.setFullScore(contestProblem.getFullScore());
+        return contestProblemVO;
+    }
+
+
+    public List<UserVO>  getUserVOListByContestId(Long contestId) {
+        List<UserVO> userVOList = new ArrayList<>();
+        LambdaQueryWrapper<ContestRegistration> queryWrapper
+                = new LambdaQueryWrapper<ContestRegistration>()
+                .eq(ContestRegistration::getContestId, contestId);
+        List<ContestRegistration> contestRegistrationList = contestRegistrationService.list(queryWrapper);
+        if (CollUtil.isEmpty(contestRegistrationList)) {
+            return new ArrayList<>();
+        }
+        for (ContestRegistration contestRegistration : contestRegistrationList) {
+            Long userId = contestRegistration.getUserId();
+            User user = userService.getById(userId);
+            UserVO userVO = userService.getUserVO(user);
+            userVOList.add(userVO);
+        }
+        return userVOList;
+      }
+
+
+    public List<ContestProblem> getContestProblemListByContestId(Long contestId) {
+        QueryWrapper<ContestProblem> queryWrapper
+                = new QueryWrapper<ContestProblem>().eq("contest_id", contestId);
+        List<ContestProblem> contestProblemList = contestProblemService.list(queryWrapper);
+        return contestProblemList;
+    }
+
+    @Override
+    public RankListVO getRankList(Long contestId) {
+        List<ContestProblem> contestProblems = this.getContestProblemListByContestId(contestId);
+        Map<Long, ContestProblem> problemMap = contestProblems.stream()
+                .collect(Collectors.toMap(ContestProblem::getProblemId, problem -> problem));
+
+
+
+        Contest contest = this.getById(contestId);
+        List<UserVO> userVOList = this.getUserVOListByContestId(contestId);
+        if (CollUtil.isEmpty(userVOList)) {
+            return new RankListVO();
+        }
+        // 每个报名用户对应一条排名记录
+        // userID -> UserRankVO
+        Map<Long, RankItem> rankMap = new HashMap<>();
+        userVOList.forEach(user -> {
+            RankItem rankVO = new RankItem();
+            rankVO.setUserVO(user);
+            rankVO.setTotalScore(Integer.valueOf(0)); // 所有题目总得分
+            rankVO.setUsedTime(Long.valueOf(0L)); // 所有题目总用时
+            rankVO.setSubmitted(Boolean.valueOf(false)); // 是否提交过
+            rankVO.setProblemDetails(new HashMap<>()); // 每个题目的具体得分和用时
+            rankMap.put(user.getId(), rankVO);
+        });
+        // 不用返回一个比赛下的所有提交
+        // 只保留一个用户对一个题目最高得分的提交
+        List<ContestSubmissionVO> submissions
+                = contestSubmissionService.listSubmissionsByContestId(contestId);
+
+        // 遍历所有提交记录，更新排名记录
+        for (ContestSubmissionVO submission : submissions) {
+            Long userId = submission.getUserId();
+            RankItem rankItem = rankMap.get(userId);
+            // 获取提交信息
+            ContestProblem contestProblem = problemMap.get(submission.getProblemId());
+
+
+            // 更新提交对应的题目的排名信息
+            RankProblemVO rankProblemVO = new RankProblemVO();
+            Integer score = submission.getSubmissionResult().getScore();
+            Integer fullScore = contestProblem.getFullScore();
+            rankProblemVO.setGainScore(Integer.valueOf(score * fullScore / 100));
+            rankProblemVO.setFullScore(contestProblem.getFullScore());
+
+            rankItem.getProblemDetails().put(contestProblem.getId(), rankProblemVO);
+            rankItem.setTotalScore(rankItem.getTotalScore() + rankProblemVO.getGainScore());
+            if (submission.getSubmissionResult().getScore() > 0) {
+                rankItem.setUsedTime(rankItem.getUsedTime() + submission.getSubmissionResult().getTotalTime());
+            }
+            rankItem.setSubmitted(true);
+        }
+        List<RankItem> rankList = new ArrayList<>(rankMap.values());
+        RankListVO result = new RankListVO();
+        result.setData(rankList);
+        Map<Long, Integer> problemInfo = new HashMap<>();
+        contestProblems.forEach(problem -> problemInfo.put(problem.getId(), problem.getFullScore()));
+        result.setProblem(problemInfo);
+        return result;
+
     }
 }
 

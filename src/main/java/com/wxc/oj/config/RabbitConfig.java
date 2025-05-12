@@ -54,6 +54,76 @@ public class RabbitConfig {
                 .noargs();
     }
 
+
+    /**
+     * 创建direct交换机，用于转发submissionID。
+     */
+    @Bean
+    public Exchange contest_exchange(){
+        return ExchangeBuilder.directExchange("contest_exchange").build();
+    }
+
+    /**
+     * 创建消息队列，用于存储submissionID。
+     * @return
+     */
+    @Bean("contest_submission_queue")     //定义消息队列
+    public Queue contest_submission_queue(){
+        return QueueBuilder
+                .durable("contest_submission_queue")   //非持久化类型
+                .build();
+    }
+
+    /**
+     * 绑定directExchange和submission队列，并指定routingKey为submission
+     * @param exchange
+     * @param queue
+     * @return
+     */
+    @Bean
+    public Binding binding_contest(@Qualifier("contest_exchange") Exchange exchange,
+                           @Qualifier("contest_submission_queue") Queue queue) {
+        //将我们刚刚定义的交换机和队列进行绑定
+        return BindingBuilder
+                .bind(queue)   //绑定队列
+                .to(exchange)  //到交换机
+                .with("submission_routing_key")   //使用自定义的routingKey
+                .noargs();
+    }
+
+    @Bean
+    public Exchange problem_exchange(){
+        return ExchangeBuilder.directExchange("problem_exchange").build();
+    }
+
+    /**
+     * 创建消息队列，用于存储submissionID。
+     * @return
+     */
+    @Bean("problem_queue")     //定义消息队列
+    public Queue problem_queue(){
+        return QueueBuilder
+                .durable("problem_queue")   //非持久化类型
+                .build();
+    }
+
+    /**
+     * 绑定directExchange和submission队列，并指定routingKey为submission
+     * @param exchange
+     * @param queue
+     * @return
+     */
+    @Bean
+    public Binding binding_problem(@Qualifier("problem_exchange") Exchange exchange,
+                                   @Qualifier("problem_queue") Queue queue) {
+        //将我们刚刚定义的交换机和队列进行绑定
+        return BindingBuilder
+                .bind(queue)   //绑定队列
+                .to(exchange)  //到交换机
+                .with("problem_key")   //使用自定义的routingKey
+                .noargs();
+    }
+
     /**
      * 创建延迟交换机
      */

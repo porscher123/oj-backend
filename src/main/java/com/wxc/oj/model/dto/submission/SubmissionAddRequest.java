@@ -11,6 +11,8 @@ public class SubmissionAddRequest {
 
     private Long problemId;
 
+    private Long userId;
+
     private String sourceCode;
 
     private String language;

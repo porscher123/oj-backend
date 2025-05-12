@@ -3,6 +3,8 @@ package com.wxc.oj.model.vo;
 import java.io.Serializable;
 import java.util.Date;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.wxc.oj.model.po.User;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
@@ -16,6 +18,7 @@ public class UserVO implements Serializable {
     /**
      * id
      */
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     private String userAccount;

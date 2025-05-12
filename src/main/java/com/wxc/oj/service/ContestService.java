@@ -4,11 +4,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.common.PageRequest;
 import com.wxc.oj.model.po.Contest;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.wxc.oj.model.po.ContestProblem;
 import com.wxc.oj.model.vo.ContestProblemVO;
 import com.wxc.oj.model.vo.ContestVO;
 import com.wxc.oj.model.vo.ProblemVO;
-import com.wxc.oj.queueMessage.ContestMessage;
-import io.lettuce.core.output.ListOfGenericMapsOutput;
+import com.wxc.oj.model.queueMessage.ContestMessage;
+import com.wxc.oj.model.vo.rank.RankListVO;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
@@ -39,5 +40,12 @@ public interface ContestService extends IService<Contest> {
 
     List<ProblemVO> getProblemVOListByContestId(Long contestId);
 
-    List<ContestProblemVO> getContestProblemVOListByContestId(Long contestId);
+    ContestProblemVO contestProblemToVO(ContestProblem contestProblem);
+
+
+    List<ContestProblemVO> getContestProblemVOListByContestId(Long contestId, Long userId);
+
+    ContestProblemVO getContestProblemByIndex(Long contestId, Integer index);
+
+    RankListVO getRankList(Long contestId);
 }

@@ -6,13 +6,13 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
-import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.SubmissionMapper;
+import com.wxc.oj.model.queueMessage.ProblemMessage;
 import com.wxc.oj.model.submission.SubmissionResult;
-import com.wxc.oj.queueMessage.SubmissionMessage;
+import com.wxc.oj.model.queueMessage.SubmissionMessage;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.po.Problem;
@@ -24,15 +24,14 @@ import com.wxc.oj.model.vo.SubmissionVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.service.UserService;
-import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,6 +58,36 @@ public class SubmissionServiceImpl extends ServiceImpl<SubmissionMapper, Submiss
     private ProblemService problemService;
     @Resource
     private UserService userService;
+
+
+    public static final String PROBLEM_QUEUE = "problem_queue";
+
+    @RabbitListener(queues = PROBLEM_QUEUE, messageConverter = "jacksonConverter")
+    public void changeProblem(ProblemMessage problemMessage) {
+        Long sid = problemMessage.getSid();
+        Submission submission = this.getById(sid);
+        SubmissionVO submissionVO = this.submissionToVO(submission);
+        SubmissionResult submissionResult = submissionVO.getSubmissionResult();
+        if (submissionResult == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Integer score = submissionResult.getScore();
+        if (score == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Long problemId = submission.getProblemId();
+        Problem problem = problemService.getById(problemId);
+        if (problem == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        problem.setSubmittedNum(problem.getSubmittedNum() + 1);
+        if (score == 100) {
+            problem.setAcceptedNum(problem.getAcceptedNum() + 1);
+        }
+        problemService.updateById(problem);
+    }
+
+
 
     /**
      * 提交代码

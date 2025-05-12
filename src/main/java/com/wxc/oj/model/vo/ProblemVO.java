@@ -1,12 +1,11 @@
 package com.wxc.oj.model.vo;
 
-import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.wxc.oj.model.po.Tag;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.wxc.oj.model.judge.JudgeConfig;
-import com.wxc.oj.model.po.Problem;
+import com.wxc.oj.model.po.Tag;
 import lombok.Data;
-import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -19,9 +18,8 @@ import java.util.List;
 @Data
 public class ProblemVO implements Serializable {
 
-    /*
-     * 可以给前端用户查看题目id
-     */
+
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     private String title;
@@ -60,42 +58,4 @@ public class ProblemVO implements Serializable {
     private UserVO userVO;
 
     private static final long serialVersionUID = 1L;
-    /**
-     * vo -> pojo
-     */
-//    public static Problem voToObj(ProblemVO problemVO) {
-//        if (problemVO == null) {
-//            return null;
-//        }
-//        Problem problem = new Problem();
-//        BeanUtils.copyProperties(problemVO, problem);
-//        // pojo的tags时String, 要将vo的List<String>转换
-//        List<Tag> tagList = problemVO.getTagList();
-//        problem.setTags(JSONUtil.toJsonStr(tagList));
-//        // vo的judgeConfig是对象, 所以将对象转为json
-//        JudgeConfig judgeConfig = problemVO.getJudgeConfig();
-//        problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
-//        return problem;
-//    }
-
-
-    /**
-     * 查询题目列表，不返回题目content
-     * pojo -> vo
-     */
-    public static ProblemVO objToVoWithoutContent(Problem problem) {
-        if (problem == null) {
-            return null;
-        }
-        ProblemVO problemVO = new ProblemVO();
-        BeanUtils.copyProperties(problem, problemVO);
-        // vo的tags时List<String>, 要将pojo的JSON String 转换
-        // 将pojo的json字符串转为JudgeConfig类
-        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
-        problemVO.setContent(null);
-        return problemVO;
-    }
-
-
-
 }

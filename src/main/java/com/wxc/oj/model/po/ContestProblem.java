@@ -27,5 +27,10 @@ public class ContestProblem implements Serializable {
 
     private Integer isDeleted;
 
+    /**
+     * 比赛中题目的满分分值
+     */
+    private Integer fullScore;
+
     private static final long serialVersionUID = 1L;
 }

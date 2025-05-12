@@ -1,23 +1,31 @@
 package com.wxc.oj.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ser.Serializers;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
+import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.PageRequest;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.model.dto.contest.ContestAddRequest;
-import com.wxc.oj.model.dto.contest.ContestProblemAddRequest;
-import com.wxc.oj.model.dto.contest.RegisterDTO;
+import com.wxc.oj.enums.contest.ContestEnum;
+import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.model.dto.contest.*;
+import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
+import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.po.Contest;
 import com.wxc.oj.model.po.ContestProblem;
-import com.wxc.oj.model.vo.ContestProblemVO;
-import com.wxc.oj.model.vo.ContestVO;
-import com.wxc.oj.model.vo.ProblemVO;
+import com.wxc.oj.model.po.ContestSubmission;
+import com.wxc.oj.model.vo.*;
+import com.wxc.oj.model.vo.rank.RankListVO;
 import com.wxc.oj.service.ContestProblemService;
 import com.wxc.oj.service.ContestService;
+import com.wxc.oj.service.ContestSubmissionService;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,12 +38,17 @@ import static org.springframework.beans.BeanUtils.copyProperties;
 @Slf4j(topic = "ContestController🤣🤣🤣🤣🤣")
 public class ContestController {
 
+    @Getter
     @Resource
     ContestService contestService;
 
 
     @Resource
     ContestProblemService contestProblemService;
+
+
+    @Resource
+    ContestSubmissionService contestSubmissionService;
 
 
     /**
@@ -146,10 +159,79 @@ public class ContestController {
      * @return
      */
     @GetMapping("problems")
-    public BaseResponse<List<ContestProblemVO>> getContestProblems(@RequestParam Long contestId) {
+    public BaseResponse<List<ContestProblemVO>> getContestProblems(@RequestParam Long contestId, @RequestParam Long userId) {
         List<ContestProblemVO> problemVOListByContestId
-                = contestService.getContestProblemVOListByContestId(contestId);
+                = contestService.getContestProblemVOListByContestId(contestId, userId);
         return ResultUtils.success(problemVOListByContestId);
+    }
+
+
+
+    @GetMapping("problem/get")
+    public BaseResponse<ContestProblemVO> getContestProblemByIndex(@RequestParam Long contestId,
+                                                            @RequestParam Integer index) {
+        ContestProblemVO contestProblemVO = contestService.getContestProblemByIndex(contestId, index);
+        return ResultUtils.success(contestProblemVO);
+    }
+
+
+
+
+
+
+    /**
+     * 返回用户对于比赛的权限
+     * @param contestId
+     * @param userId
+     * @return
+     */
+    @GetMapping("auth")
+    public BaseResponse<UserAuthInContestVO> getUserAuthInContest(@RequestParam Long contestId, @RequestBody Long userId) {
+        return null;
+    }
+
+
+    /**
+     * 在比赛中提交代码
+     * todo:
+     *  1. 只有在比赛进行中才能提交代码
+     */
+    @PostMapping("problem/submit")
+    public BaseResponse<ContestSubmissionVO> submit(@RequestBody SubmitInContestDTO submitInContestDTO) {
+//        Long contestId = submitInContestDTO.getContestId();
+//        Contest contest = contestService.getById(contestId);
+//        if (contest.getStatus() != ContestEnum.RUNNING.getCode()) {
+//            throw new BusinessException(ErrorCode.OPERATION_ERROR);
+//        }
+        ContestSubmissionVO contestSubmissionVO = contestSubmissionService.submitCode(submitInContestDTO);
+        return ResultUtils.success(contestSubmissionVO);
+    }
+
+
+
+    /**
+     * 获取一个contest的所有submission
+     * @param
+     * @return
+     */
+    @PostMapping("submissions")
+    public BaseResponse<Page<ContestSubmissionVO>> getContestSubmissions(
+            @RequestBody ContestSubmissionListDTO contestSubmissionListDTO) {
+        Page<ContestSubmissionVO> ans = contestSubmissionService.listSubmissions(contestSubmissionListDTO);
+        return ResultUtils.success(ans);
+    }
+
+    @GetMapping("submission/get")
+    public BaseResponse<ContestSubmissionVO> getContestSubmissionById(@RequestParam Long id) {
+        ContestSubmissionVO contestSubmissionVO = contestSubmissionService.getContestSubmissionById(id);
+        return ResultUtils.success(contestSubmissionVO);
+    }
+
+
+    @GetMapping("rank")
+    public BaseResponse<RankListVO> getContestRank(@RequestParam Long contestId) {
+        RankListVO rankList = contestService.getRankList(contestId);
+        return ResultUtils.success(rankList);
     }
 }
 

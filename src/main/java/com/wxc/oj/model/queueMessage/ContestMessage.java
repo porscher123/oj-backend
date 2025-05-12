@@ -1,4 +1,4 @@
-package com.wxc.oj.queueMessage;
+package com.wxc.oj.model.queueMessage;
 
 
 import lombok.Data;

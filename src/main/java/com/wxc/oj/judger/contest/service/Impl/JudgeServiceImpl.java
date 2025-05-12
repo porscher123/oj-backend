@@ -1,4 +1,4 @@
-package com.wxc.oj.judger.service.Impl;
+package com.wxc.oj.judger.contest.service.Impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONArray;
@@ -10,32 +10,29 @@ import com.wxc.oj.enums.JudgeResultEnum;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
 import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.judger.contest.service.JudgeService;
 import com.wxc.oj.judger.model.TestCase;
 import com.wxc.oj.judger.model.TestCases;
-import com.wxc.oj.judger.service.JudgeService;
-import com.wxc.oj.queueMessage.SubmissionMessage;
-import com.wxc.oj.model.po.Problem;
-import com.wxc.oj.model.po.Submission;
 import com.wxc.oj.model.judge.JudgeCaseResult;
 import com.wxc.oj.model.judge.JudgeConfig;
+import com.wxc.oj.model.po.ContestSubmission;
+import com.wxc.oj.model.po.Problem;
 import com.wxc.oj.model.submission.SubmissionResult;
+import com.wxc.oj.model.queueMessage.SubmissionMessage;
 import com.wxc.oj.sandbox.SandboxRun;
 import com.wxc.oj.sandbox.dto.Cmd;
 import com.wxc.oj.sandbox.dto.SandBoxRequest;
 import com.wxc.oj.sandbox.dto.SandBoxResponse;
 import com.wxc.oj.sandbox.enums.SandBoxResponseStatus;
-import com.wxc.oj.sandbox.model.FileError;
 import com.wxc.oj.sandbox.model.LanguageConfig;
+import com.wxc.oj.service.ContestSubmissionService;
 import com.wxc.oj.service.ProblemService;
-import com.wxc.oj.service.SubmissionService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +47,7 @@ import java.util.Map;
  *   "language": "cpp"
  * }
  */
-@Service
+@Service("judgerInContest")
 @Slf4j(topic = "✔✔✔✔JudgeServiceImpl✔✔✔✔")
 public class JudgeServiceImpl implements JudgeService {
 
@@ -64,7 +61,7 @@ public class JudgeServiceImpl implements JudgeService {
 
 
     @Resource
-    private SubmissionService submissionService;
+    private ContestSubmissionService contestSubmissionService;
 
     @Resource
     private ProblemService problemService;
@@ -78,14 +75,13 @@ public class JudgeServiceImpl implements JudgeService {
      */
     public static final Long MEMORY_LIMIT = 536870912L;
 
-    public static final String QUEUE = "submission";
+    public static final String QUEUE = "contest_submission_queue";
     public static final String DATA_PATH = "F:\\oj\\oj-backend\\src\\main\\resources\\data";
     public static final Integer PROC_LIMIT = 50;
 
     @RabbitListener(queues = QUEUE, messageConverter = "jacksonConverter")
     public void listenSubmission(SubmissionMessage message) throws IOException {
         Long id = message.getId();
-        log.info("🔆🔆🔆🔆🔆接收到的id: " + id);
         doJudge(id);
     }
 
@@ -110,11 +106,16 @@ public class JudgeServiceImpl implements JudgeService {
 //        return exeId;
 //    }
 
-    private boolean changeStatus(Submission submissionUpd,  SubmissionResult submissionResult, SubmissionStatus statusUpd) {
+    private boolean changeStatus(ContestSubmission submissionUpd,
+                                 SubmissionResult submissionResult,
+                                 SubmissionStatus statusUpd) {
         submissionResult.setStatus(statusUpd.getStatus());
         submissionResult.setStatusDescription(statusUpd.getDescription());
         submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
-        return submissionService.updateById(submissionUpd);
+        // new
+        submissionUpd.setStatus(statusUpd.getStatus());
+        submissionUpd.setStatusDescription(statusUpd.getDescription());
+        return contestSubmissionService.updateById(submissionUpd);
     }
     /**
      * cppJudge
@@ -122,7 +123,7 @@ public class JudgeServiceImpl implements JudgeService {
      * @param problem
      * @throws IOException
      */
-    public void cppJudge(Submission submission, Problem problem) throws IOException {
+    public void cppJudge(ContestSubmission submission, Problem problem) throws IOException {
         Long pid = problem.getId();
 
         Long submissionId = submission.getId();
@@ -144,6 +145,9 @@ public class JudgeServiceImpl implements JudgeService {
             submissionResult.setMemoryUsed(0L);
             submissionResult.setScore(0);
             submissionResult.setCompileErrorMessage(sandBoxResponse.getError());
+            submission.setTotalTime(0L);
+            submissionResult.setScore(0);
+            submission.setMemoryUsed(0L);
             boolean b = this.changeStatus(submission, submissionResult, SubmissionStatus.COMPILE_ERROR);
             if (!b) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
@@ -272,6 +276,9 @@ public class JudgeServiceImpl implements JudgeService {
         submissionResult.setMemoryUsed(maxMemoryUsed);
         submissionResult.setTotalTime(totalTime);
 
+        submission.setMemoryUsed(maxMemoryUsed);
+        submission.setTotalTime(totalTime);
+
         // 根据AC样例数与总样例数, 计算分数
 
         // 删除沙箱服务中保存的文件
@@ -280,8 +287,13 @@ public class JudgeServiceImpl implements JudgeService {
         }
 
         submissionResult.setScore(totalScore);
+        submission.setScore(totalScore);
+
         // 提交结果中包含所有测试样例的测试结果
         submissionResult.setJudgeCaseResults(judgeCaseResults);
+
+        submission.setJudgeCaseResults(JSONUtil.toJsonStr(judgeCaseResults));
+
         // 判题结束后, 修改数据库中的submission的信息
         submission.setId(submissionId);
         if (totalScore == 100) {
@@ -345,7 +357,7 @@ public class JudgeServiceImpl implements JudgeService {
      */
     @Override
     public void doJudge(Long submissionId) throws IOException {
-        Submission submission = submissionService.getById(submissionId);
+        ContestSubmission submission = contestSubmissionService.getById(submissionId);
         // 获取提交
         if (submission == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "提交不存在");
@@ -483,30 +495,4 @@ public class JudgeServiceImpl implements JudgeService {
         log.info(response.getError());
         return response;
     }
-
-
-    /**
-     * 根据样例得通过情况, 计算这次submission的得分
-     * @param judgeCaseResults
-     * @return
-     */
-    @Override
-    public Integer getScore(List<JudgeCaseResult> judgeCaseResults) {
-        int total = judgeCaseResults.size();
-        int accepted = 0;
-        for (var judgeCaseResult : judgeCaseResults) {
-            if (judgeCaseResult.getJudgeResult().equals(JudgeResultEnum.ACCEPTED.getValue())) {
-                accepted++;
-            }
-        }
-        log.info("total " + total);
-        log.info("ac tests  " + accepted);
-        if (total == 0) {
-            return 0;
-        }
-        int score = accepted * 100 / total ;
-        return score;
-    }
-
-
 }
