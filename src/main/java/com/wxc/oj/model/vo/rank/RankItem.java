@@ -6,9 +6,10 @@ import java.util.Map;
 
 @Data
 public class RankItem {
-    private UserVO userVO;
+    private Long userId;
+    private String userName;
     private int totalScore;
     private long usedTime;
-    private boolean submitted;
-    private Map<Long, RankProblemVO> problemDetails; // 题目ID -> 题目详情
+    private Boolean submitted;
+    private Map<Integer, RankProblemVO> problemDetails; // 题目ID -> 题目详情
 }

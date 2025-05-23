@@ -14,12 +14,65 @@
             <result property="language" column="language" jdbcType="VARCHAR"/>
             <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
             <result property="submissionResult" column="submission_result" jdbcType="VARCHAR"/>
+
+            <result property="status" column="status" jdbcType="TINYINT"/>
+            <result property="statusDescription" column="status_description" jdbcType="VARCHAR"/>
+            <result property="score" column="score" jdbcType="INTEGER"/>
+            <result property="totalTime" column="total_time" jdbcType="BIGINT"/>
+            <result property="memoryUsed" column="memory_used" jdbcType="BIGINT"/>
+            <result property="judgeCaseResults" column="judge_case_results" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,contest_id,user_id,
         problem_id,submission_time,source_code,
-        language,
-        is_deleted,submission_result
+        language,status,status_description,score,total_time,
+        is_deleted,submission_result,memory_used,judge_case_results
     </sql>
+
+    <select id="selectMaxScoreSubmissionsByContest" resultMap="BaseResultMap">
+        SELECT
+            s.id,
+            s.contest_id,
+            s.user_id,
+            s.problem_id,
+            s.submission_time,
+            s.source_code,
+            s.language,
+            s.status,
+            s.status_description,
+            s.score,
+            s.total_time,
+            s.is_deleted,
+            s.submission_result,
+            s.memory_used,
+            s.judge_case_results
+        FROM  contest_submission s
+        JOIN (
+                SELECT
+                    user_id,
+                    problem_id,
+                    MAX(score) AS max_score,
+                    MAX(id) as max_id
+                FROM
+                    contest_submission
+                WHERE
+                    contest_id = #{contestId}
+                  AND is_deleted = 0
+                GROUP BY
+                    user_id,
+                    problem_id
+            ) max_scores
+         ON
+                                 s.user_id = max_scores.user_id
+                             AND s.problem_id = max_scores.problem_id
+                             AND s.score = max_scores.max_score
+                            and s.id = max_scores.max_id
+        WHERE
+            s.contest_id = #{contestId}
+          AND s.is_deleted = 0
+        ORDER BY
+            s.user_id ASC,
+            s.problem_id ASC
+    </select>
 </mapper>

@@ -3,12 +3,9 @@ package com.wxc.oj.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.model.dto.contest.ContestSubmissionListDTO;
 import com.wxc.oj.model.dto.contest.SubmitInContestDTO;
-import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.po.ContestSubmission;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.wxc.oj.model.po.User;
-import com.wxc.oj.model.vo.ContestSubmissionVO;
-import com.wxc.oj.model.vo.SubmissionVO;
+import com.wxc.oj.model.vo.contest.ContestSubmissionVO;
 
 import java.util.List;
 
@@ -47,4 +44,6 @@ public interface ContestSubmissionService extends IService<ContestSubmission> {
     List<ContestSubmissionVO> listSubmissionsByContestId(Long contestId);
 
     ContestSubmissionVO getContestSubmissionById(Long id);
+
+    List<ContestSubmissionVO> getMaxScoreSubmissionsByContestAndProblem(Long contestId);
 }

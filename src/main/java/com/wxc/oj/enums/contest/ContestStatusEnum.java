@@ -1,6 +1,6 @@
 package com.wxc.oj.enums.contest;
 
-public enum ContestEnum {
+public enum ContestStatusEnum {
     NOT_STARTED(0, "未开始"),
     RUNNING(1, "进行中"),
     ENDED(2, "已结束");
@@ -8,7 +8,7 @@ public enum ContestEnum {
     private final Integer code;
     private final String description;
 
-    ContestEnum(Integer code, String description) {
+    ContestStatusEnum(Integer code, String description) {
         this.code = code;
         this.description = description;
     }

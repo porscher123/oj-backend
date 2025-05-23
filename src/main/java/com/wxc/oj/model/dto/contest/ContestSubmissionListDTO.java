@@ -10,5 +10,6 @@ import java.io.Serializable;
 public class ContestSubmissionListDTO extends PageRequest implements Serializable {
     private Long contestId;
     private Long userId;
+    private Boolean selfOnly;
     private static final long serialVersionUID = 1L;
 }

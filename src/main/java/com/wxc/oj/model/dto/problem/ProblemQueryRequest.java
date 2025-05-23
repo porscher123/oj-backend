@@ -20,8 +20,12 @@ public class ProblemQueryRequest extends PageRequest implements Serializable {
 
     private String title;
 
-    private List<String> tags;
+    private List<Integer> tags;
+
+    private Long publisherId;
+
     private Long userId;
+
     private Integer level;
 
 

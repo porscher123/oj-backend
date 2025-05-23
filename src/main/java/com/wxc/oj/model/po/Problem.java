@@ -22,17 +22,12 @@ public class Problem implements Serializable {
 
     private String content;
 
-    private String tags;
 
     /**
      * 难度
      */
     private Integer level;
 
-    /**
-     * 题解
-     */
-    private String solution;
 
     /**
      * 提交数
@@ -43,10 +38,6 @@ public class Problem implements Serializable {
      */
     private Integer acceptedNum;
 
-    /**
-     * 测试用例
-     */
-//    private String judgeCase;
     /**
      * 测试配置
      */
@@ -63,7 +54,7 @@ public class Problem implements Serializable {
 
     private Integer isDeleted;
 
-    private Integer onlyContest;
+    private Integer isPublic;
 
 
     private static final long serialVersionUID = 1L;

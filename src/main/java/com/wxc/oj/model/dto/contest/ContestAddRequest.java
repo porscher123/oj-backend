@@ -16,9 +16,11 @@ public class ContestAddRequest implements Serializable {
 
     private Integer duration;
 
-    private Integer isPublic;
+    private Boolean isPublic;
 
-    private List<Long> problems;
+    private Long hostId;
+
+    private List<ContestProblemDTO> problems;
 
     private static final long serialVersionUID = 1L;
 }

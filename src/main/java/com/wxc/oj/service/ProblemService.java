@@ -2,9 +2,10 @@ package com.wxc.oj.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.po.Problem;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.wxc.oj.model.vo.ProblemVO;
 
 import java.util.List;
@@ -54,4 +55,7 @@ public interface ProblemService extends IService<Problem> {
     Page<ProblemVO> getProblemVOPage(Page<Problem> postPage);
 
     Page<ProblemVO> listProblemVO(ProblemQueryRequest problemQueryRequest);
+
+
+    ProblemVO editProblem(ProblemEditRequest request);
 }

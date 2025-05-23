@@ -9,24 +9,27 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
 import com.wxc.oj.constant.Level;
+import com.wxc.oj.enums.problem.ProblemLevel;
 import com.wxc.oj.exception.BusinessException;
+import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.mapper.ProblemMapper;
+import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
+import com.wxc.oj.model.dto.problem.ProblemTag;
 import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.po.Problem;
 import com.wxc.oj.model.po.Tag;
 import com.wxc.oj.model.po.User;
-import com.wxc.oj.model.queueMessage.ProblemMessage;
 import com.wxc.oj.service.ProblemService;
 import com.wxc.oj.model.vo.ProblemVO;
 import com.wxc.oj.model.vo.UserVO;
+import com.wxc.oj.service.ProblemTagService;
 import com.wxc.oj.service.TagService;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -48,6 +51,10 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     @Resource
     private TagService tagService;
 
+
+
+    @Resource
+    ProblemTagService problemTagService;
 
 
 
@@ -91,14 +98,17 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         String title = problemQueryRequest.getTitle();
 
         // 第1次查数据库,根据tags筛选ids
-        List<String> tags = problemQueryRequest.getTags(); // 获取标签列表
-        if (tags != null && !tags.isEmpty()) {
-            List<Long> problemIds = tagService.getProblemIdsByTagNames(tags);
-            queryWrapper.in(!problemIds.isEmpty() && problemIds != null, "id", problemIds);
+        List<Integer> tags = problemQueryRequest.getTags(); // 获取标签列表
+        LambdaQueryWrapper<ProblemTag> queryWrapper1 = new LambdaQueryWrapper<>();
+        if (CollUtil.isNotEmpty(tags)) {
+//            List<Long> problemIds = tagService.getProblemIdsByTagNames(tags);
+            queryWrapper1.in(tags != null && !tags.isEmpty(), ProblemTag::getTagId, tags);
         }
-
-//        log.info("💕💕💕💕💕💕💕💕" + problemIds.toString() + "💕💕💕💕💕💕");
-
+        queryWrapper1.select(ProblemTag::getProblemId);
+        List<Long> pids = problemTagService.listObjs(queryWrapper1);
+        if (CollUtil.isNotEmpty(pids)) {
+            queryWrapper.in("id", pids);
+        }
         Integer level = problemQueryRequest.getLevel();
         String sortField = problemQueryRequest.getSortField();
         String sortOrder = problemQueryRequest.getSortOrder();
@@ -108,18 +118,19 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         if (sortField == null) {
             sortField = "id";
         }
+
         // 拼接查询条件
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title)
                 .like(StringUtils.isNotBlank(title), "content", title)
                 .eq(level != null && level != 6,"level", level);
 
-
-
-
-
-//        queryWrapper.eq(ObjectUtils.isNotEmpty(id),"id", id);
-
-        queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
+        Long userId = problemQueryRequest.getUserId();
+        User byId = userService.getById(userId);
+        if (byId.getUserRole() < 1) {
+            queryWrapper.eq("is_public", 1);
+        }
+        queryWrapper.orderBy(SqlUtils.validSortField(sortField),
+                sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper.lambda();
     }
@@ -135,6 +146,9 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         int pageSize = problemQueryRequest.getPageSize();
         if (problemQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        if (problemQueryRequest.getUserId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户id未填写");
         }
         // 获取查询条件
         LambdaQueryWrapper<Problem> queryWrapper = getQueryWrapper(problemQueryRequest);
@@ -170,11 +184,20 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             user = userService.getById(userId);
         }
         UserVO userVO = userService.getUserVO(user);
-        List<Tag> tags = tagService.listTagsByProblemId(problem.getId());
+
+
         problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
 
+        LambdaQueryWrapper<ProblemTag> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProblemTag::getProblemId, problem.getId());
+        List<Tag> tags = new ArrayList<>();
+        List<ProblemTag> list = problemTagService.list(queryWrapper);
+        if (list  != null && !list.isEmpty()) {
+            tags = tagService.listTagsByProblemId(problem.getId());
+        }
         problemVO.setTags(tags);
         problemVO.setUserVO(userVO);
+
         return problemVO;
     }
     /**
@@ -196,7 +219,13 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             user = userService.getById(userId);
         }
         UserVO userVO = userService.getUserVO(user);
-        List<Tag> tags = tagService.listTagsByProblemId(problem.getId());
+        LambdaQueryWrapper<ProblemTag> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProblemTag::getProblemId, problem.getId());
+        List<Tag> tags = new ArrayList<>();
+        List<ProblemTag> list = problemTagService.list(queryWrapper);
+        if (list  != null && !list.isEmpty()) {
+            tags = tagService.listTagsByProblemId(problem.getId());
+        }
         problemVO.setTags(tags);
         problemVO.setUserVO(userVO);
         problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
@@ -233,6 +262,78 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
         List<ProblemVO> problemVOList = getProblemVOListByProblemList(problemList);
         problemVOPage.setRecords(problemVOList);
         return problemVOPage;
+    }
+
+
+
+    private void checkLevel(Integer level) {
+        Boolean isLevel = ProblemLevel.fromValue(level);
+        if (!isLevel) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "等级不合法");
+        }
+    }
+
+
+    @Override
+    public ProblemVO editProblem(ProblemEditRequest request) {
+        Long id = request.getId();
+        Problem problem = new Problem();
+        copyProperties(request, problem);
+        problem.setId(id);
+        Long userId = request.getUserId();
+        problem.setUserId(userId);
+        Boolean isPublic = request.getIsPublic();
+        if (isPublic) {
+            problem.setIsPublic(1);
+        } else {
+            problem.setIsPublic(0);
+        }
+
+
+        Integer level = request.getLevel();
+        this.checkLevel(level);
+        problem.setLevel(level);
+
+        JudgeConfig judgeConfig = request.getJudgeConfig();
+        if (judgeConfig != null) {
+            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
+        }
+
+        this.validProblem(problem, true);
+
+
+        problem.setSubmittedNum(0);
+        problem.setAcceptedNum(0);
+
+        boolean result = this.updateById(problem);
+        int tagSize = tagService.list().size();
+        List<Integer> tags1 = request.getTags();
+        Set<Integer> set = new HashSet<>(tags1);
+
+        List<Integer> tags = new ArrayList<>(set);
+        for (Integer tagId : tags) {
+            if (tagId <= 0 || tagId > tagSize) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签id不合法");
+            }
+            ProblemTag problemTag = new ProblemTag();
+            problemTag.setProblemId(problem.getId());
+            problemTag.setTagId(tagId);
+            LambdaQueryWrapper<ProblemTag> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ProblemTag::getProblemId, problem.getId()).
+                    eq(ProblemTag::getTagId, tagId);
+            ProblemTag r = problemTagService.getOne(queryWrapper);
+            if (r == null) {
+                boolean save = problemTagService.save(problemTag);
+                if (!save) {
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR);
+                }
+            }
+
+        }
+        // 添加失败
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ProblemVO problemVOWithContent = this.getProblemVOWithContent(problem);
+        return problemVOWithContent;
     }
 }
 

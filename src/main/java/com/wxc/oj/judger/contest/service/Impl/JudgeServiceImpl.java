@@ -291,7 +291,6 @@ public class JudgeServiceImpl implements JudgeService {
 
         // 提交结果中包含所有测试样例的测试结果
         submissionResult.setJudgeCaseResults(judgeCaseResults);
-
         submission.setJudgeCaseResults(JSONUtil.toJsonStr(judgeCaseResults));
 
         // 判题结束后, 修改数据库中的submission的信息

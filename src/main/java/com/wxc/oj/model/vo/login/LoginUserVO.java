@@ -1,4 +1,4 @@
-package com.wxc.oj.model.vo;
+package com.wxc.oj.model.vo.login;
 
 import java.io.Serializable;
 import java.util.Date;

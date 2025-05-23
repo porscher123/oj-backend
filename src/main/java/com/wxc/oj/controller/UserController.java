@@ -10,7 +10,7 @@ import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.model.dto.user.*;
 import com.wxc.oj.model.po.User;
-import com.wxc.oj.model.vo.LoginVO;
+import com.wxc.oj.model.vo.login.LoginVO;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.service.UserService;
 import jakarta.annotation.Resource;

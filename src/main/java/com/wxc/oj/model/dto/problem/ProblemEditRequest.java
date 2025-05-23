@@ -1,6 +1,5 @@
 package com.wxc.oj.model.dto.problem;
 
-import com.wxc.oj.model.judge.JudgeCase;
 import com.wxc.oj.model.judge.JudgeConfig;
 import lombok.Data;
 
@@ -15,25 +14,22 @@ import java.util.List;
 public class ProblemEditRequest implements Serializable {
 
     private Long id;
-//
-//    private String title;
-//
-//    private String content;
 
-    private List<String> tags;
+    private String title;
 
-    private String level;
+    private String content;
 
-    private String solution;
+    private List<Integer> tags;
 
-    private Integer thumbNum;
-
-    private Integer favorNum;
-
-    private List<JudgeCase> judgeCase;
+    private Integer level;
 
     private JudgeConfig judgeConfig;
 
+    private Long userId;
+
+    private Long pusherId;
+
+    private Boolean isPublic;
 
     private static final long serialVersionUID = 1L;
 }

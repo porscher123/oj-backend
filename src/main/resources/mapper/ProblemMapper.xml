@@ -8,9 +8,7 @@
             <id property="id" column="id" jdbcType="BIGINT"/>
             <result property="title" column="title" jdbcType="VARCHAR"/>
             <result property="content" column="content" jdbcType="VARCHAR"/>
-            <result property="tags" column="tags" jdbcType="VARCHAR"/>
             <result property="level" column="level" jdbcType="TINYINT"/>
-            <result property="solution" column="solution" jdbcType="VARCHAR"/>
             <result property="submittedNum" column="submitted_num" jdbcType="INTEGER"/>
             <result property="acceptedNum" column="accepted_num" jdbcType="INTEGER"/>
             <result property="judgeConfig" column="judge_config" jdbcType="VARCHAR"/>
@@ -18,14 +16,15 @@
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
+            <result property="isPublic" column="is_public" jdbcType="TINYINT"/>
+
 
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,title,content,
-        tags,level,solution,
+        id,title,content,level,
         submitted_num,accepted_num,
         judge_config,user_id,create_time,
-        update_time,is_deleted
+        update_time,is_deleted,is_public
     </sql>
 </mapper>

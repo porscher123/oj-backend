@@ -12,7 +12,7 @@ import com.wxc.oj.mapper.UserMapper;
 import com.wxc.oj.model.dto.user.UserQueryRequest;
 import com.wxc.oj.enums.UserRoleEnum;
 import com.wxc.oj.model.po.User;
-import com.wxc.oj.model.vo.LoginVO;
+import com.wxc.oj.model.vo.login.LoginVO;
 import com.wxc.oj.service.UserService;
 import com.wxc.oj.model.vo.UserVO;
 import com.wxc.oj.utils.JwtUtils;

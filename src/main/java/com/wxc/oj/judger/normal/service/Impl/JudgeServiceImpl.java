@@ -90,7 +90,7 @@ public class JudgeServiceImpl implements JudgeService {
     public static final String DATA_PATH = "F:\\oj\\oj-backend\\src\\main\\resources\\data";
     public static final Integer PROC_LIMIT = 50;
 
-    @RabbitListener(queues = QUEUE, messageConverter = "jacksonConverter")
+    @RabbitListener(queues = QUEUE, messageConverter = "jacksonConverter", concurrency = "20")
     public void listenSubmission(SubmissionMessage message) throws IOException {
         Long id = message.getId();
         log.info("🔆🔆🔆🔆🔆接收到的id: " + id);

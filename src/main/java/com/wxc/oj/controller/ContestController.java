@@ -3,32 +3,30 @@ package com.wxc.oj.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.databind.ser.Serializers;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.PageRequest;
 import com.wxc.oj.common.ResultUtils;
-import com.wxc.oj.enums.contest.ContestEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.dto.contest.*;
-import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
-import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.po.Contest;
 import com.wxc.oj.model.po.ContestProblem;
-import com.wxc.oj.model.po.ContestSubmission;
+import com.wxc.oj.model.po.Problem;
+import com.wxc.oj.model.po.User;
 import com.wxc.oj.model.vo.*;
+import com.wxc.oj.model.vo.contest.ContestProblemSimpleVO;
+import com.wxc.oj.model.vo.contest.ContestProblemVO;
+import com.wxc.oj.model.vo.contest.ContestSubmissionVO;
+import com.wxc.oj.model.vo.contest.ContestVO;
 import com.wxc.oj.model.vo.rank.RankListVO;
-import com.wxc.oj.service.ContestProblemService;
-import com.wxc.oj.service.ContestService;
-import com.wxc.oj.service.ContestSubmissionService;
-import io.swagger.v3.oas.models.security.SecurityScheme;
+import com.wxc.oj.service.*;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static com.wxc.oj.enums.UserRoleEnum.ADMIN;
@@ -38,7 +36,6 @@ import static org.springframework.beans.BeanUtils.copyProperties;
 @Slf4j(topic = "ContestController🤣🤣🤣🤣🤣")
 public class ContestController {
 
-    @Getter
     @Resource
     ContestService contestService;
 
@@ -51,43 +48,73 @@ public class ContestController {
     ContestSubmissionService contestSubmissionService;
 
 
+    @Resource
+    ProblemService problemService;
+
+
+    @Resource
+    UserService userService;
+
     /**
      * 创建比赛并从题库选择题目添加到比赛中
-     * @param contestAddRequest
+     * @param request
      * @return
      */
+//    @PostMapping("add")
+//    @AuthCheck(mustRole = ADMIN)
+//    public BaseResponse<Boolean> addContest(@RequestBody ContestAddRequest request) {
+//        contestService.contestInStatus_0(request);
+//        return ResultUtils.success(true);
+//    }
+
+
     @PostMapping("add")
     @AuthCheck(mustRole = ADMIN)
-    public BaseResponse<ContestVO> addContest(HttpServletRequest request,
-                                              @RequestBody ContestAddRequest contestAddRequest) {
-        Contest contest = new Contest();
-        copyProperties(contestAddRequest, contest);
-        contest.setStatus(0);
-        contestService.contestInStatus_0(request,contest);
-        Long contestId = contest.getId();
-        List<Long> problems = contestAddRequest.getProblems();
-        int idx = 0;
-        for (Long problemId : problems) {
-            ContestProblem contestProblem = new ContestProblem();
-            contestProblem.setContestId(contestId);
-            contestProblem.setProblemId(problemId);
-            contestProblem.setPindex(idx++);
-            contestProblemService.save(contestProblem);
-        }
-        ContestVO contestVO = contestService.getContestVOWithProblemListByContest(contest);
+    public BaseResponse addContest(@RequestBody ContestAddRequest request) {
+        contestService.addContestWithBaseInfo(request);
+        return ResultUtils.success(true);
+    }
+
+    @PostMapping("update")
+    @AuthCheck(mustRole = ADMIN)
+    public BaseResponse<ContestVO> updateContest(@RequestBody ContestUpdateRequest request) {
+        ContestVO contestVO = contestService.updateContestBaseInfo(request);
         return ResultUtils.success(contestVO);
     }
-    @PostMapping("addContestProblem")
+    @PostMapping("update/base")
     @AuthCheck(mustRole = ADMIN)
-    public BaseResponse addProblemToContest(@RequestBody ContestProblemAddRequest contestProblemAddRequest) {
+    public BaseResponse<ContestVO> updateContestBaseInfo(@RequestBody ContestBaseUpdateRequest request) {
+        ContestVO contestVO = contestService.updateContestBaseInfo(request);
+        return ResultUtils.success(contestVO);
+    }
 
-        ContestProblem contestProblem = new ContestProblem();
-        copyProperties(contestProblemAddRequest, contestProblem);
-        boolean save = contestProblemService.save(contestProblem);
-        if (!save) {
-            return ResultUtils.error(500, "添加失败");
+    /**
+     *  修改比赛的题目
+     * @param
+     * @return
+     * @Date
+     */
+    @PostMapping("UpdateContestProblem")
+    @AuthCheck(mustRole = ADMIN)
+    public BaseResponse updateContestProblems(@RequestBody ContestProblemUpdateRequest
+                                                          request) {
+
+        Long contestId = request.getContestId();
+        List<ContestProblemDTO> problems = request.getProblems();
+        // 删除该比赛的所有题目
+        LambdaQueryWrapper<ContestProblem> q1 = new LambdaQueryWrapper<>();
+        q1.eq(ContestProblem::getContestId, contestId);
+        contestProblemService.remove(q1);
+        // 添加题目到比赛中
+        for (ContestProblemDTO problem : problems) {
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setContestId(contestId);
+            contestProblem.setProblemId(problem.getProblemId());
+            contestProblem.setFullScore(problem.getFullScore());
+            contestProblem.setPindex(problem.getProblemIndex());
+            contestProblemService.save(contestProblem);
         }
-        return ResultUtils.success(contestProblem);
+        return ResultUtils.success(true);
     }
 
 
@@ -159,7 +186,8 @@ public class ContestController {
      * @return
      */
     @GetMapping("problems")
-    public BaseResponse<List<ContestProblemVO>> getContestProblems(@RequestParam Long contestId, @RequestParam Long userId) {
+    public BaseResponse<List<ContestProblemVO>> getContestProblems(@RequestParam Long contestId, @
+            RequestParam Long userId) {
         List<ContestProblemVO> problemVOListByContestId
                 = contestService.getContestProblemVOListByContestId(contestId, userId);
         return ResultUtils.success(problemVOListByContestId);
@@ -175,7 +203,44 @@ public class ContestController {
     }
 
 
+    /**
+     * todo:
+     *      根据contestId获取比赛现有题目列表
+     *      返回题目的id，index，title，publisherId，发布人名称， 发布时间
+     * @param contestId
+     * @return
+     */
+    @GetMapping("/problemss")
+    public BaseResponse<List<ContestProblemSimpleVO>> getProblemsByContestId(@RequestParam Long contestId) {
+        LambdaQueryWrapper<ContestProblem> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ContestProblem::getContestId, contestId)
+                .select(ContestProblem::getProblemId,
+                        ContestProblem::getPindex,
+                        ContestProblem::getProblemId,
+                        ContestProblem::getFullScore)
+                .orderByAsc(ContestProblem::getPindex);
+        List<ContestProblem> contestProblemList = contestProblemService.list(queryWrapper);
+        List<ContestProblemSimpleVO> problemVOList = new ArrayList<>();
+        for (ContestProblem contestProblem : contestProblemList) {
+            Long problemId = contestProblem.getProblemId();
+            Problem problem = problemService.getById(problemId);
+            Long userId = problem.getUserId();
+            User publisher = userService.getById(userId);
 
+            ContestProblemSimpleVO contestProblemVO = new ContestProblemSimpleVO();
+            // modify
+            contestProblemVO.setProblemId(problemId);
+            contestProblemVO.setProblemIndex(contestProblem.getPindex());
+            contestProblemVO.setFullScore(contestProblem.getFullScore());
+            contestProblemVO.setTitle(problem.getTitle());
+            contestProblemVO.setPublisherName(publisher.getUserAccount());
+            contestProblemVO.setPublisherId(publisher.getId());
+            contestProblemVO.setCreateTime(problem.getCreateTime());
+            contestProblemVO.setIsPublic(problem.getIsPublic());
+            problemVOList.add(contestProblemVO);
+        }
+        return ResultUtils.success(problemVOList);
+    }
 
 
 
@@ -203,6 +268,11 @@ public class ContestController {
 //        if (contest.getStatus() != ContestEnum.RUNNING.getCode()) {
 //            throw new BusinessException(ErrorCode.OPERATION_ERROR);
 //        }
+        Long contestId = submitInContestDTO.getContestId();
+        Contest contest = contestService.getById(contestId);
+        if (contest.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,  "不能提交");
+        }
         ContestSubmissionVO contestSubmissionVO = contestSubmissionService.submitCode(submitInContestDTO);
         return ResultUtils.success(contestSubmissionVO);
     }
@@ -217,7 +287,7 @@ public class ContestController {
     @PostMapping("submissions")
     public BaseResponse<Page<ContestSubmissionVO>> getContestSubmissions(
             @RequestBody ContestSubmissionListDTO contestSubmissionListDTO) {
-        Page<ContestSubmissionVO> ans = contestSubmissionService.listSubmissions(contestSubmissionListDTO);
+        Page<ContestSubmissionVO> ans = contestService.listSubmissions(contestSubmissionListDTO);
         return ResultUtils.success(ans);
     }
 

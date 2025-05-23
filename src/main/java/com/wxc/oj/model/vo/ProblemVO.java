@@ -56,6 +56,7 @@ public class ProblemVO implements Serializable {
     private Integer isDelete;
 
     private UserVO userVO;
+    private Integer isPublic;
 
     private static final long serialVersionUID = 1L;
 }

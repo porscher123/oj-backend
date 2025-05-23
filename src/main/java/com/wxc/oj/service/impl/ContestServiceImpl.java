@@ -7,21 +7,23 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.PageRequest;
-import com.wxc.oj.enums.JudgeResultEnum;
+import com.wxc.oj.enums.contest.ContestStatusEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ContestMapper;
 import com.wxc.oj.mapper.ContestProblemMapper;
 import com.wxc.oj.mapper.ContestRegistrationMapper;
+import com.wxc.oj.model.dto.contest.*;
 import com.wxc.oj.model.po.*;
-import com.wxc.oj.model.submission.SubmissionResult;
 import com.wxc.oj.model.vo.*;
 import com.wxc.oj.model.queueMessage.ContestMessage;
+import com.wxc.oj.model.vo.contest.ContestProblemVO;
+import com.wxc.oj.model.vo.contest.ContestSubmissionVO;
+import com.wxc.oj.model.vo.contest.ContestVO;
 import com.wxc.oj.model.vo.rank.RankListVO;
 import com.wxc.oj.model.vo.rank.RankProblemVO;
 import com.wxc.oj.model.vo.rank.RankItem;
 import com.wxc.oj.service.*;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -31,7 +33,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.springframework.beans.BeanUtils.copyProperties;
 
@@ -77,27 +78,218 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
     ContestSubmissionService contestSubmissionService;
 
     /**
+     * 比赛最大延迟时间，单位为分钟，21天
+     */
+    private static final Integer MAX_DELAY_TIME = 30_240;
+
+    private void validateContestBaseInfo(ContestBaseUpdateRequest request) {
+        Date startTime = request.getStartTime();
+        if (startTime != null) {
+            Date currentDate = new Date();
+            // 如果比赛时间早于当前时间或者比赛准备时间大于21天，则抛出异常
+            if (startTime.getTime() < currentDate.getTime()
+                    || startTime.getTime() - currentDate.getTime() > MAX_DELAY_TIME * 60 * 1000) {
+                throw new BusinessException(400, "比赛时间不能早于当前时间");
+            }
+            Integer duration = request.getDuration();
+            // 如果比赛持续时间小于等于0或者持续时间大于等于21天，则抛出异常
+            if (duration <= 0 || duration >= MAX_DELAY_TIME) {
+                throw new BusinessException(400, "比赛持续时间不能小于0或者大于21天");
+            }
+        }
+
+    }
+
+    /**
+     * 更新比赛的基本信息
+     * 确保比赛的状态为0.
+     * @param request
+     * @return
+     */
+    @Override
+    public ContestVO updateContestBaseInfo(ContestBaseUpdateRequest request) {
+        validateContestBaseInfo(request);
+        Long contestId = request.getContestId();
+        Contest contest = this.getById(contestId);
+        Integer status = contest.getStatus();
+        if (status == ContestStatusEnum.ENDED.getCode()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "比赛已结束，不能修改");
+        }
+        Date startTime = request.getStartTime();
+        if (startTime != null) {
+
+        }
+        String title = request.getTitle();
+        String description = request.getDescription();
+        Integer duration = request.getDuration() * 60 * 1000;
+        Integer isContestPublic;
+        if (request.getIsPublic() == true) {
+            isContestPublic = 1;
+        } else {
+            isContestPublic = 0;
+        }
+
+        contest.setTitle(title);
+        contest.setDescription(description);
+        contest.setDuration(duration);
+        contest.setIsPublic(isContestPublic);
+
+        boolean b = this.updateById(contest);
+        if (!b) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "更新失败");
+        }
+        ContestVO contestVOByContestId = this.getContestVOByContestId(contestId);
+        return contestVOByContestId;
+    }
+
+    @Override
+    public ContestVO updateContestBaseInfo(ContestUpdateRequest request) {
+        validateContest(request);
+        Long contestId = request.getContestId();
+        Contest contest = this.getById(contestId);
+
+        String title = request.getTitle();
+        String description = request.getDescription();
+        Integer duration = request.getDuration();
+        Integer isContestPublic;
+        if (request.getIsPublic() == true) {
+            isContestPublic = 1;
+        } else {
+            isContestPublic = 0;
+        }
+
+        contest.setTitle(title);
+        contest.setDescription(description);
+        contest.setDuration(duration);
+        contest.setIsPublic(isContestPublic);
+        List<ContestProblemDTO> problems = request.getProblems();
+        // 如果管理员需要修改题目，则先删除旧题目
+        if (CollUtil.isNotEmpty(problems)) {
+            LambdaQueryWrapper<ContestProblem> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ContestProblem::getContestId, contestId);
+            boolean remove = contestProblemService.remove(queryWrapper);
+            if (!remove) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "删除比赛题目失败");
+            }
+        }
+
+        // 比赛的题目只能是非公开的
+        for (var problem : problems) {
+            Integer problemIndex = problem.getProblemIndex();
+            Long problemId = problem.getProblemId();
+            Integer fullScore = problem.getFullScore();
+
+            ContestProblem contestProblem = new ContestProblem();
+            Problem byId = problemService.getById(problemId);
+            Integer isPublic = byId.getIsPublic();
+            if (isPublic == 1) {
+                continue;
+            }
+            contestProblem.setFullScore(fullScore);
+            contestProblem.setContestId(contestId);
+            contestProblem.setProblemId(problemId);
+            contestProblem.setPindex(problemIndex);
+            contestProblemService.save(contestProblem);
+        }
+        boolean b = this.updateById(contest);
+        if (!b) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "更新失败");
+        }
+        ContestVO contestVOByContestId = this.getContestVOByContestId(contestId);
+        return contestVOByContestId;
+    }
+    @Override
+    public boolean addContestWithBaseInfo(ContestAddRequest request) {
+        validateContest(request);
+        Contest contest = new Contest();
+        String title = request.getTitle();
+        String description = request.getDescription();
+        Integer duration = request.getDuration();
+        Integer isContestPublic;
+        if (request.getIsPublic() == true) {
+            isContestPublic = 1;
+        } else {
+            isContestPublic = 0;
+        }
+        Date startTime = request.getStartTime();
+        Long hostId = request.getHostId();
+
+        contest.setTitle(title);
+        contest.setDescription(description);
+        contest.setDuration(duration);
+        contest.setIsPublic(isContestPublic);
+        contest.setStartTime(startTime);
+        contest.setStatus(ContestStatusEnum.NOT_STARTED.getCode());
+        contest.setHostId(hostId);
+        boolean b = this.save(contest);
+        if (!b) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "更新失败");
+        }
+        return true;
+    }
+    private void validateContest(ContestAddRequest request) {
+        Date startTime = request.getStartTime();
+        Date currentDate = new Date();
+        // 如果比赛时间早于当前时间或者比赛准备时间大于21天，则抛出异常
+        if (startTime.getTime() < currentDate.getTime()
+                || startTime.getTime() - currentDate.getTime() > MAX_DELAY_TIME * 60 * 1000) {
+            throw new BusinessException(400, "比赛时间不能早于当前时间");
+        }
+        Integer duration = request.getDuration();
+        // 如果比赛持续时间小于等于0或者持续时间大于等于21天，则抛出异常
+        if (duration <= 0 || duration >= MAX_DELAY_TIME) {
+            throw new BusinessException(400, "比赛持续时间不能小于0或者大于21天");
+        }
+    }
+
+
+    /**
      * contest在状态0时的操作:
      * 1. 保存contest到数据库
      *
      * @return
      */
     @Override
-    public void contestInStatus_0(HttpServletRequest request, Contest contest) {
-        Date startTime = contest.getStartTime();
-        Date currentDate = new Date();
-        // 比赛时间不能早于当前时间
-        if (startTime.getTime() < currentDate.getTime()) {
-            throw new BusinessException(400, "比赛时间不能早于当前时间");
-        }
-        log.info(contest.toString());
-        contest.setHostId(userService.getLoginUser(request).getId());
+    public void contestInStatus_0(ContestAddRequest request) {
+        this.validateContest(request);
+
+        Contest contest = new Contest();
+        copyProperties(request, contest);
+        contest.setStatus(ContestStatusEnum.NOT_STARTED.getCode());
+
+        contest.setHostId(request.getHostId());
+
         // 保存contest到数据库
         boolean save = this.save(contest);
         if (!save) {
             throw new BusinessException(400, "比赛发布失败");
         }
-        currentDate = new Date();
+        Long contestId = contest.getId();
+        List<ContestProblemDTO> problems = request.getProblems();
+        // 比赛的题目只能是非公开的
+        for (var problem : problems) {
+            Integer problemIndex = problem.getProblemIndex();
+            Long problemId = problem.getProblemId();
+            Integer fullScore = problem.getFullScore();
+
+            ContestProblem contestProblem = new ContestProblem();
+            Problem byId = problemService.getById(problemId);
+            Integer isPublic = byId.getIsPublic();
+            if (isPublic == 1) {
+                continue;
+            }
+            contestProblem.setFullScore(fullScore);
+            contestProblem.setContestId(contestId);
+            contestProblem.setProblemId(problemId);
+            contestProblem.setPindex(problemIndex);
+            contestProblemService.save(contestProblem);
+        }
+
+
+
+
+        Date startTime = request.getStartTime();
+        Date currentDate = new Date();
         long timeDifferenceInMillis = startTime.getTime() - currentDate.getTime();
         log.info("距离"+timeDifferenceInMillis+"ms比赛就业开始");
         // 创建消息, 保存contest ID
@@ -109,7 +301,6 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
             properties.setDelay(Integer.valueOf((int)timeDifferenceInMillis));
             return message;
         });
-
         log.info("比赛已经发布😊😊😊😊😊");
     }
 
@@ -130,7 +321,7 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         if (!updated) {
             throw new RuntimeException("更新失败");
         }
-        Integer duration = contest.getDuration();
+        Integer duration = contest.getDuration() * 1000;
         ContestMessage contestMessage2 = new ContestMessage();
         contestMessage2.setId(contest.getId());
         // todo: 将当前contest下的所有题目缓存到redis
@@ -193,7 +384,7 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         contestVO.setHostName(host.getUserName());
         contestVO.setHostId(contest.getHostId());
         // 以秒为单位返回比赛持续时间
-        contestVO.setDuration(Integer.valueOf(contest.getDuration() / 1000));
+        contestVO.setDuration(Integer.valueOf(contest.getDuration() / 1000/ 60));
         contestVO.setEndTime(new Date(contest.getStartTime().getTime() + contest.getDuration()));
         return contestVO;
     }
@@ -210,10 +401,11 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         Long contestId = contest.getId();
         Integer playerCount = this.getContestPlayerCount(contest.getId());
         contestVO.setPlayerCount(playerCount);
+        contestVO.setHostName(userService.getById(contest.getHostId()).getUserName());
         List<ProblemVO> problemVOList = this.getProblemVOListByContestId(contestId);
         contestVO.setProblemVOList(problemVOList);
         // 以秒为单位返回比赛持续时间
-        contestVO.setDuration(Integer.valueOf(contest.getDuration() / 1000));
+        contestVO.setDuration(Integer.valueOf(contest.getDuration() / 1000 / 60));
         contestVO.setEndTime(new Date(contest.getStartTime().getTime() + contest.getDuration()));
 
 //        contestVO.setRegistered(K);
@@ -351,7 +543,29 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         }
         return true;
     }
+    @Override
+    public Page<ContestSubmissionVO> listSubmissions(ContestSubmissionListDTO contestSubmissionListDTO) {
+        long current = contestSubmissionListDTO.getCurrent();
+        long size = contestSubmissionListDTO.getPageSize();
+        Long userId = contestSubmissionListDTO.getUserId();
 
+        Long contestId = contestSubmissionListDTO.getContestId();
+        LambdaQueryWrapper<ContestSubmission> queryWrapper = new LambdaQueryWrapper<>();
+        if (contestId != null) {
+            queryWrapper.eq(ContestSubmission::getContestId, contestId);
+        }
+        Boolean selfOnly = contestSubmissionListDTO.getSelfOnly();
+        Contest byId = this.getById(contestId);
+        Integer status = byId.getStatus();
+        if (selfOnly || status <= 1) {
+            queryWrapper.eq(ContestSubmission::getUserId,  userId);
+        }
+        queryWrapper.orderByDesc(ContestSubmission::getSubmissionTime);
+        Page<ContestSubmission> page = contestSubmissionService.page(new Page<>(current, size), queryWrapper);
+        Page<ContestSubmissionVO> ans
+                = contestSubmissionService.getContestSubmissionVOPageByContestSubmissionPage(page);
+        return ans;
+    }
     /**
      * 取消报名
      * todo:
@@ -542,11 +756,18 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
 
     @Override
     public RankListVO getRankList(Long contestId) {
-        List<ContestProblem> contestProblems = this.getContestProblemListByContestId(contestId);
-        Map<Long, ContestProblem> problemMap = contestProblems.stream()
-                .collect(Collectors.toMap(ContestProblem::getProblemId, problem -> problem));
-
-
+        Map<Long, Integer> pidToIdx = new HashMap<>();
+        Map<Integer, Integer> pinfo = new HashMap<>();
+        List<ContestProblem> contestProblems
+                = this.getContestProblemListByContestId(contestId);
+        for (ContestProblem contestProblem : contestProblems) {
+            pidToIdx.put(contestProblem.getProblemId(), contestProblem.getPindex());
+//            ContestProblemVO contestProblemVO = this.contestProblemToVO(contestProblem);
+//            contestProblemVO.setContent(null);
+//            contestProblemVO.setUserVO(null);
+//            contestProblemVO.setJudgeConfig(null);
+            pinfo.put(contestProblem.getPindex(), contestProblem.getFullScore());
+        }
 
         Contest contest = this.getById(contestId);
         List<UserVO> userVOList = this.getUserVOListByContestId(contestId);
@@ -558,7 +779,8 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         Map<Long, RankItem> rankMap = new HashMap<>();
         userVOList.forEach(user -> {
             RankItem rankVO = new RankItem();
-            rankVO.setUserVO(user);
+            rankVO.setUserId(user.getId());
+            rankVO.setUserName(user.getUserAccount());
             rankVO.setTotalScore(Integer.valueOf(0)); // 所有题目总得分
             rankVO.setUsedTime(Long.valueOf(0L)); // 所有题目总用时
             rankVO.setSubmitted(Boolean.valueOf(false)); // 是否提交过
@@ -568,24 +790,27 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
         // 不用返回一个比赛下的所有提交
         // 只保留一个用户对一个题目最高得分的提交
         List<ContestSubmissionVO> submissions
-                = contestSubmissionService.listSubmissionsByContestId(contestId);
+                = contestSubmissionService.getMaxScoreSubmissionsByContestAndProblem(contestId);
 
         // 遍历所有提交记录，更新排名记录
         for (ContestSubmissionVO submission : submissions) {
             Long userId = submission.getUserId();
+            Long problemId = submission.getProblemId();
+
             RankItem rankItem = rankMap.get(userId);
-            // 获取提交信息
-            ContestProblem contestProblem = problemMap.get(submission.getProblemId());
+            Integer fullScore = pinfo.get(pidToIdx.get(problemId));
 
-
+            Integer pindex = pidToIdx.get(problemId);
             // 更新提交对应的题目的排名信息
             RankProblemVO rankProblemVO = new RankProblemVO();
             Integer score = submission.getSubmissionResult().getScore();
-            Integer fullScore = contestProblem.getFullScore();
             rankProblemVO.setGainScore(Integer.valueOf(score * fullScore / 100));
-            rankProblemVO.setFullScore(contestProblem.getFullScore());
+            rankProblemVO.setFullScore(fullScore);
+            rankProblemVO.setTimeUsed(submission.getSubmissionResult().getTotalTime());
 
-            rankItem.getProblemDetails().put(contestProblem.getId(), rankProblemVO);
+            rankItem.getProblemDetails()
+                    .put(pindex, rankProblemVO);
+
             rankItem.setTotalScore(rankItem.getTotalScore() + rankProblemVO.getGainScore());
             if (submission.getSubmissionResult().getScore() > 0) {
                 rankItem.setUsedTime(rankItem.getUsedTime() + submission.getSubmissionResult().getTotalTime());
@@ -593,11 +818,25 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
             rankItem.setSubmitted(true);
         }
         List<RankItem> rankList = new ArrayList<>(rankMap.values());
+
+
+        rankList.sort((a, b) -> {
+            if (!a.getSubmitted() && !b.getSubmitted()) return 0;
+            if (!a.getSubmitted()) return 1;
+            if (!b.getSubmitted()) return -1;
+
+            // 按总分降序
+            int scoreCompare = Integer.compare(b.getTotalScore(), a.getTotalScore());
+            if (scoreCompare != 0) return scoreCompare;
+
+            // 按用时升序
+            return Long.compare(a.getUsedTime(), b.getUsedTime());
+        });
+
         RankListVO result = new RankListVO();
         result.setData(rankList);
-        Map<Long, Integer> problemInfo = new HashMap<>();
-        contestProblems.forEach(problem -> problemInfo.put(problem.getId(), problem.getFullScore()));
-        result.setProblem(problemInfo);
+        result.setProblem(pinfo);
+
         return result;
 
     }

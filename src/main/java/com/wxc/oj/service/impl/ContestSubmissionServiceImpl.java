@@ -12,17 +12,12 @@ import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ContestSubmissionMapper;
 import com.wxc.oj.model.dto.contest.ContestSubmissionListDTO;
 import com.wxc.oj.model.dto.contest.SubmitInContestDTO;
-import com.wxc.oj.model.po.ContestProblem;
-import com.wxc.oj.model.po.ContestSubmission;
-import com.wxc.oj.model.po.Problem;
-import com.wxc.oj.model.po.User;
+import com.wxc.oj.model.judge.JudgeCaseResult;
+import com.wxc.oj.model.po.*;
 import com.wxc.oj.model.submission.SubmissionResult;
-import com.wxc.oj.model.vo.ContestSubmissionVO;
+import com.wxc.oj.model.vo.contest.ContestSubmissionVO;
 import com.wxc.oj.model.queueMessage.SubmissionMessage;
-import com.wxc.oj.service.ContestProblemService;
-import com.wxc.oj.service.ContestSubmissionService;
-import com.wxc.oj.service.ProblemService;
-import com.wxc.oj.service.UserService;
+import com.wxc.oj.service.*;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +25,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,6 +44,8 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
 
 
     @Resource
+    ContestSubmissionMapper mapper;
+    @Resource
     ContestProblemService contestProblemService;
 
     public static final String ROUTING_KEY = "submission_routing_key";
@@ -63,6 +61,8 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
     @Resource
     private UserService userService;
 
+
+
     /**
      * 提交代码
      * 并生成submission到rocketmq
@@ -71,12 +71,16 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
      */
     @Override
     public ContestSubmissionVO submitCode(SubmitInContestDTO submitInContestDTO) {
+
         if (submitInContestDTO == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         if (StringUtils.isBlank(submitInContestDTO.getSourceCode())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+
+
+
         // 检查编程语言是否存在
         String language = submitInContestDTO.getLanguage();
         log.info("language = " + language);
@@ -109,15 +113,18 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
         submissionResult.setScore(0);
 
         submission.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
+        submission.setStatus(SubmissionStatus.SUBMITTED.getStatus());
+        submission.setStatusDescription(SubmissionStatus.SUBMITTED.getDescription());
+        submission.setScore(0);
 
         // 初始submission保存到数据库
         boolean save = this.save(submission);
         if (!save) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
-
+        Long id1 = submission.getId();
         // 获取插入数据库后的submissionID
-        ContestSubmission submission1 = this.getById(submission.getId());
+        ContestSubmission submission1 = this.getById(id1);
         // submission发送到消息队列后，submission的状态为 PENDING
         // ❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗❗
         Long id = submission1.getId();
@@ -149,6 +156,9 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
         // 将submissionResult的json字符串转换为对象
         String submissionResult = contestSubmission.getSubmissionResult();
         SubmissionResult bean = JSONUtil.toBean(submissionResult, SubmissionResult.class);
+        String judgeCaseResultsStr = contestSubmission.getJudgeCaseResults();
+        List<JudgeCaseResult> judgeCaseResults = JSONUtil.toList(judgeCaseResultsStr, JudgeCaseResult.class);
+        contestSubmissionVO.setJudgeCaseResults(judgeCaseResults);
         contestSubmissionVO.setSubmissionResult(bean);
 
 
@@ -165,8 +175,12 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
                 .eq(ContestProblem::getContestId, contestId)
                 .eq(ContestProblem::getProblemId, problem.getId());
         ContestProblem contestProblem = contestProblemService.getOne(queryWrapper);
-        Integer pindex = contestProblem.getPindex();
-        contestSubmissionVO.setProblemIndex(pindex);
+        if (contestProblem != null) {
+            Integer pindex = contestProblem.getPindex();
+            contestSubmissionVO.setProblemIndex(pindex);
+        }
+
+
         return contestSubmissionVO;
     }
 
@@ -245,24 +259,9 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
 
     @Override
     public Page<ContestSubmissionVO> listSubmissions(ContestSubmissionListDTO contestSubmissionListDTO) {
-        long current = contestSubmissionListDTO.getCurrent();
-        long size = contestSubmissionListDTO.getPageSize();
-        Long userId = contestSubmissionListDTO.getUserId();
-
-        Long contestId = contestSubmissionListDTO.getContestId();
-        LambdaQueryWrapper<ContestSubmission> queryWrapper = new LambdaQueryWrapper<>();
-        if (contestId != null) {
-            queryWrapper.eq(ContestSubmission::getContestId, contestId);
-        }
-        if (userId != null) {
-            queryWrapper.eq(ContestSubmission::getUserId, userId);
-        }
-        queryWrapper.orderByDesc(ContestSubmission::getSubmissionTime);
-        Page<ContestSubmission> page = this.page(new Page<>(current, size), queryWrapper);
-        Page<ContestSubmissionVO> ans
-                = this.getContestSubmissionVOPageByContestSubmissionPage(page);
-        return ans;
+        return null;
     }
+
 
     @Override
     public List<ContestSubmissionVO> listSubmissionsByContestId(Long contestId) {
@@ -283,6 +282,19 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
         return contestSubmissionToVO(contestSubmission);
     }
 
+
+
+    @Override
+    public List<ContestSubmissionVO> getMaxScoreSubmissionsByContestAndProblem(Long contestId) {
+        List<ContestSubmission> contestSubmissions
+                = mapper.selectMaxScoreSubmissionsByContest(contestId);
+        List<ContestSubmissionVO> contestSubmissionVOS = new ArrayList<>();
+        for (ContestSubmission contestSubmission : contestSubmissions) {
+            ContestSubmissionVO contestSubmissionVO = contestSubmissionToVO(contestSubmission);
+            contestSubmissionVOS.add(contestSubmissionVO);
+        }
+        return contestSubmissionVOS;
+    }
 }
 
 

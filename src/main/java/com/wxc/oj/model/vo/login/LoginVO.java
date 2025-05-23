@@ -1,5 +1,6 @@
-package com.wxc.oj.model.vo;
+package com.wxc.oj.model.vo.login;
 
+import com.wxc.oj.model.vo.UserVO;
 import lombok.Data;
 
 @Data

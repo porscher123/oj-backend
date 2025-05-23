@@ -1,6 +1,7 @@
 package com.wxc.oj.controller;
 
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.annotation.AuthCheck;
 import com.wxc.oj.common.BaseResponse;
@@ -9,30 +10,32 @@ import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.ResultUtils;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
-import com.wxc.oj.model.dto.problem.ProblemAddRequest;
-import com.wxc.oj.model.dto.problem.ProblemEditRequest;
-import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
-import com.wxc.oj.model.dto.problem.ProblemUpdateRequest;
+import com.wxc.oj.model.dto.problem.*;
+import com.wxc.oj.model.po.ContestProblem;
 import com.wxc.oj.model.po.Problem;
 import com.wxc.oj.model.po.User;
 import com.wxc.oj.model.judge.JudgeConfig;
 import com.wxc.oj.model.vo.ProblemVO;
-import com.wxc.oj.service.ProblemService;
-import com.wxc.oj.service.UserService;
+import com.wxc.oj.model.vo.contest.AddingProblemVO;
+import com.wxc.oj.model.vo.contest.ContestProblemSimpleVO;
+import com.wxc.oj.service.*;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.wxc.oj.enums.UserRoleEnum.ADMIN;
 import static org.springframework.beans.BeanUtils.copyProperties;
+import static org.springframework.beans.BeanUtils.findPropertyForMethod;
 
 /**
  * 题目
@@ -48,120 +51,140 @@ public class ProblemController {
     @Resource
     private UserService userService;
 
+    @Resource
+    ProblemTagService problemTagService;
+
+
+    @Resource
+    ContestProblemService contestProblemService;
+
+    @Resource
+    TagService tagService;
+
+    public static final String PROBLEM_KEY = "problem:";
+    @Resource
+    StringRedisTemplate stringRedisTemplate;
+
+    private static final String UPLOAD_ROOT = "src/main/resources/data";
+
     /**
      * 实现了接收一个文件到服务端
      * todo:
-     *  接收一组输入输出样例, 保存到/data/xxx
+     *  接收一组输入输出样例, 保存到resouces/data/{pid}
      *
-     * @param file
+     * @param files
      * @throws Exception
      */
 
     @PostMapping("uploadCase")
-    public void getCaseLoad(MultipartFile file) throws Exception {
-        log.info("file here");
-        File dir = new File("data");
-        if (!dir.exists()) {
-            dir.mkdirs();
+    public void getCaseLoad(@RequestParam("file") List<MultipartFile> files, @RequestParam Long pid)
+            throws Exception {
+        for (MultipartFile file : files) {
+            // 1. 验证文件是否为空
+            if (file.isEmpty()) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件为空");
+            }
+
+            // 2. 构建基于PID的存储目录（例如：resources/data/123）
+            Path pidDirectory = Paths.get(UPLOAD_ROOT, String.valueOf(pid));
+
+            // 3. 确保目录存在，不存在则创建（包括父目录）
+            Files.createDirectories(pidDirectory);
+
+            // 4. 获取原始文件名并构建完整存储路径
+            String fileName = file.getOriginalFilename();
+            Path targetLocation = pidDirectory.resolve(fileName);
+
+            // 5. 保存文件到目标位置（使用REPLACE_EXISTING避免文件已存在错误）
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
         }
-        int tot = 0;
-        file.transferTo(new File(dir.getAbsolutePath() + File.separator + file.getOriginalFilename()));
-//        InputStream inputStream = file.getInputStream();
-
-//        String s = new String();
-//        log.info(s);
-        String filePath = dir.getAbsolutePath() + File.separator + file.getOriginalFilename();
-
-        String content = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
-
-        log.info("====" + content);
     }
 
-    /**
-     * 创建题目
-     * @param problemAddRequest
-     * 将前端发送的ProblemAddRequest转换为Problem并持久化到数据库
-     */
-    @PostMapping("add")
-    @AuthCheck(mustRole = ADMIN)
-    public BaseResponse<Problem> addProblem(@RequestBody ProblemAddRequest problemAddRequest,
-                                            HttpServletRequest request) {
-        if (problemAddRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Problem problem = new Problem();
-        copyProperties(problemAddRequest, problem);
-        List<String> tags = problemAddRequest.getTags();
-        if (tags != null) {
-            problem.setTags(JSONUtil.toJsonStr(tags));
-        }
-//        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
-//        if (judgeCase != null) {
-//            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+//    @GetMapping("notPublished")
+//    @AuthCheck(mustRole = ADMIN)
+//    public BaseResponse<List<AddingProblemVO>> getProblemVOForContest() {
+//        LambdaQueryWrapper<Problem> queryWrapper = new LambdaQueryWrapper<>();
+//        queryWrapper.eq(Problem::getIsPublic, 0)
+//                .select(Problem::getId, Problem::getTitle);
+//        List<Problem> problemList = problemService.list(queryWrapper);
+//        if (problemList == null) {
+//            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
 //        }
-        JudgeConfig judgeConfig = problemAddRequest.getJudgeConfig();
-        if (judgeConfig != null) {
-            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
-        }
-        problemService.validProblem(problem, true);
-        // 获取当前用户
-        User loginUser = userService.getLoginUser(request);
-        problem.setUserId(loginUser.getId());
-        problem.setSubmittedNum(0);
-        problem.setAcceptedNum(0);
-        // todo:
-        // 保存答案
-        boolean result = problemService.save(problem);
-        // 添加失败
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        long newProblemId = problem.getId();
-
-        Problem newProblem = problemService.getById(newProblemId);
-        return ResultUtils.success(newProblem);
-    }
-
-    /**
-     * 创建比赛使用题目
-     */
-    @PostMapping("addtocontest")
+//        List<AddingProblemVO> resultList = problemList.stream()
+//                .map(problem -> {
+//                    AddingProblemVO vo = new AddingProblemVO();
+//                    vo.setId(problem.getId());
+//                    vo.setTitle(problem.getTitle());
+//                    return vo;
+//                })
+//                .collect(Collectors.toList());
+//        return ResultUtils.success(resultList);
+//    }
+    @PostMapping("edit")
     @AuthCheck(mustRole = ADMIN)
-    public BaseResponse<Problem> addProblemToContest(@RequestBody ProblemAddRequest problemAddRequest,
-                                                     HttpServletRequest request) {
-
-        if (problemAddRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+    public BaseResponse<ProblemVO> editProblem(@RequestBody ProblemEditRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求为null");
         }
-        Problem problem = new Problem();
-        copyProperties(problemAddRequest, problem);
-        List<String> tags = problemAddRequest.getTags();
-        if (tags != null) {
-            problem.setTags(JSONUtil.toJsonStr(tags));
-        }
-//        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
-//        if (judgeCase != null) {
-//            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
-//        }
-        JudgeConfig judgeConfig = problemAddRequest.getJudgeConfig();
-        if (judgeConfig != null) {
-            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
-        }
-        problemService.validProblem(problem, true);
-        // 获取当前用户
-        User loginUser = userService.getLoginUser(request);
-        // 初始化题目信息
-        problem.setUserId(loginUser.getId());
-        problem.setSubmittedNum(0);
-        problem.setAcceptedNum(0);
-        problem.setOnlyContest(1); // 用于比赛的题目, 比赛结束前所有人不可见
-        // 保存答案
-        boolean result = problemService.save(problem);
-        // 添加失败
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        long newProblemId = problem.getId();
-
-        Problem newProblem = problemService.getById(newProblemId);
-        return ResultUtils.success(newProblem);
+        ProblemVO problemVO = problemService.editProblem(request);
+        return ResultUtils.success(problemVO);
     }
+
+    @PutMapping("create")
+    @AuthCheck(mustRole = ADMIN)
+    public BaseResponse<Long> createProblem(@RequestParam Long userId) {
+        Problem problem = new Problem();
+        problem.setTitle("temp");
+        problem.setContent("");
+        problem.setLevel(0);
+        problem.setJudgeConfig(JSONUtil.toJsonStr(new JudgeConfig()));
+        problem.setUserId(userId);
+        problem.setIsPublic(0);
+        boolean save = problemService.save(problem);
+        return ResultUtils.success(problem.getId());
+    }
+//    /**
+//     * 创建比赛使用题目
+//     */
+//    @PostMapping("addtocontest")
+//    @AuthCheck(mustRole = ADMIN)
+//    public BaseResponse<Problem> addProblemToContest(@RequestBody ProblemAddRequest problemAddRequest,
+//                                                     HttpServletRequest request) {
+//
+//        if (problemAddRequest == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        Problem problem = new Problem();
+//        copyProperties(problemAddRequest, problem);
+//        List<Integer> tags = problemAddRequest.getTags();
+////        if (tags != null) {
+////            problem.setTags(JSONUtil.toJsonStr(tags));
+////        }
+////        List<JudgeCase> judgeCase = problemAddRequest.getJudgeCase();
+////        if (judgeCase != null) {
+////            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
+////        }
+//        JudgeConfig judgeConfig = problemAddRequest.getJudgeConfig();
+//        if (judgeConfig != null) {
+//            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
+//        }
+//        problemService.validProblem(problem, true);
+//        // 获取当前用户
+//        User loginUser = userService.getLoginUser(request);
+//        // 初始化题目信息
+//        problem.setUserId(loginUser.getId());
+//        problem.setSubmittedNum(0);
+//        problem.setAcceptedNum(0);
+//        problem.setIsPublic(0); // 用于比赛的题目, 比赛结束前所有人不可见
+//        // 保存答案
+//        boolean result = problemService.save(problem);
+//        // 添加失败
+//        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+//        long newProblemId = problem.getId();
+//
+//        Problem newProblem = problemService.getById(newProblemId);
+//        return ResultUtils.success(newProblem);
+//    }
     /**
      * 删除题目(逻辑删除)
      */
@@ -184,61 +207,63 @@ public class ProblemController {
         return ResultUtils.success(b);
     }
 
-    /**
-     * 更新（仅管理员）
-     */
-    @PostMapping("update")
-    @AuthCheck(mustRole = ADMIN)
-    public BaseResponse<ProblemVO> updateProblem(@RequestBody ProblemUpdateRequest problemUpdateRequest) {
-        if (problemUpdateRequest == null || problemUpdateRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        // 创建要保存到数据库中的problem
-        Problem problem = new Problem();
-        copyProperties(problemUpdateRequest, problem);
-        // 将对象转为json字符串存储
-        List<String> tags = problemUpdateRequest.getTags();
-        if (tags != null) {
-            problem.setTags(JSONUtil.toJsonStr(tags));
-        }
-//        List<JudgeCase> judgeCase = problemUpdateRequest.getJudgeCase();
-//        if (judgeCase != null) {
-//            problem.setJudgeCase(JSONUtil.toJsonStr(judgeCase));
-//        }
-        JudgeConfig judgeConfig = problemUpdateRequest.getJudgeConfig();
-        if (judgeConfig != null) {
-            problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
-        }
-        // 参数校验
-        problemService.validProblem(problem, false);
-        Long id = problemUpdateRequest.getId();
-        // 判断是否存在
-        Problem oldProblem = problemService.getById(id);
-        // 要更新的problem不存在
-        ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
-        // 执行更新操作
-        problemService.updateById(problem);
-        Problem newProblem = problemService.getById(oldProblem.getId());
 
-        return ResultUtils.success(problemService.getProblemVOWithContent(newProblem));
-    }
 
     /**
      * 根据 id 获取题目
      * GET方法
+     * 使用redis 缓存
      */
     @GetMapping("/get/vo/{id}")
     public BaseResponse<ProblemVO> getProblemVOById(@PathVariable Long id) {
         if (id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        if (stringRedisTemplate.hasKey(PROBLEM_KEY + id)) {
+            String s = stringRedisTemplate.opsForValue().get(PROBLEM_KEY + id);
+            ProblemVO problemVO = JSONUtil.toBean(s, ProblemVO.class);
+            return ResultUtils.success(problemVO);
+        }
         Problem problem = problemService.getById(id);
+        ProblemVO problemVOWithContent = problemService.getProblemVOWithContent(problem);
+        stringRedisTemplate.opsForValue().set(PROBLEM_KEY + id, JSONUtil.toJsonStr(problemVOWithContent));
         if (problem == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        ProblemVO problemVOWithContent = problemService.getProblemVOWithContent(problem);
+
         return ResultUtils.success(problemVOWithContent);
     }
+
+    @GetMapping("/get/check")
+    public BaseResponse<ContestProblemSimpleVO> checkProblemCanUsedInContest(
+            @RequestParam Long contestId, @RequestParam Long problemId) {
+        if (problemId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        LambdaQueryWrapper<Problem> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Problem::getId, problemId)
+                .eq(Problem::getIsPublic, 0);
+        Problem problem = problemService.getOne(queryWrapper);
+        if (problem == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "改题目不是私有");
+        }
+        User publisher = userService.getById(problem.getUserId());
+        LambdaQueryWrapper<ContestProblem> queryWrapper1 = new LambdaQueryWrapper<>();
+        queryWrapper1.eq(ContestProblem::getProblemId, problemId)
+                .eq(ContestProblem::getContestId, contestId);
+        ContestProblemSimpleVO contestProblemSimpleVO = new ContestProblemSimpleVO();
+        contestProblemSimpleVO.setProblemId(problemId);
+        contestProblemSimpleVO.setProblemIndex(0);
+        contestProblemSimpleVO.setFullScore(100);
+        contestProblemSimpleVO.setTitle(problem.getTitle());
+        contestProblemSimpleVO.setPublisherName(publisher.getUserName());
+        contestProblemSimpleVO.setPublisherId(publisher.getId());
+        contestProblemSimpleVO.setCreateTime(problem.getCreateTime());
+        contestProblemSimpleVO.setIsPublic(problem.getIsPublic());
+        return ResultUtils.success(contestProblemSimpleVO);
+    }
+
+
 
     /**
      * 根据 id 获取题目
@@ -260,18 +285,6 @@ public class ProblemController {
         return ResultUtils.success(problem);
     }
 
-    /**
-     * 分页获取题目列表（仅管理员）
-     */
-    @PostMapping("/list/page")
-    @AuthCheck(mustRole = ADMIN)
-    public BaseResponse<Page<Problem>> listProblemByPage(@RequestBody ProblemQueryRequest problemQueryRequest) {
-        long current = problemQueryRequest.getCurrent();
-        long size = problemQueryRequest.getPageSize();
-        Page<Problem> problemPage = problemService.page(new Page<>(current, size),
-                problemService.getQueryWrapper(problemQueryRequest));
-        return ResultUtils.success(problemPage);
-    }
 
     /**
      * 分页获取列表（封装类）
@@ -286,63 +299,5 @@ public class ProblemController {
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         Page<ProblemVO> problemVOPage = problemService.listProblemVO(problemQueryRequest);
         return ResultUtils.success(problemVOPage);
-    }
-
-    /**
-     * 分页获取当前用户创建的资源列表
-     *
-     * @param
-     * @param request
-     * @return
-     */
-    @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<ProblemVO>> listMyProblemVOByPage(@RequestBody ProblemQueryRequest problemQueryRequest,
-                                                               HttpServletRequest request) {
-        if (problemQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User loginUser = userService.getLoginUser(request);
-        problemQueryRequest.setUserId(loginUser.getId());
-        long current = problemQueryRequest.getCurrent();
-        long size = problemQueryRequest.getPageSize();
-        // 限制爬虫
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        Page<Problem> ProblemPage = problemService.page(new Page<>(current, size),
-                problemService.getQueryWrapper(problemQueryRequest));
-        return ResultUtils.success(problemService.getProblemVOPage(ProblemPage));
-    }
-
-
-    /**
-     * 编辑（用户）
-     *
-     * @param
-     * @param request
-     * @return
-     */
-    @PostMapping("/edit")
-    public BaseResponse<Boolean> editProblem(@RequestBody ProblemEditRequest problemEditRequest, HttpServletRequest request) {
-        if (problemEditRequest == null || problemEditRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Problem Problem = new Problem();
-        copyProperties(problemEditRequest, Problem);
-        List<String> tags = problemEditRequest.getTags();
-        if (tags != null) {
-            Problem.setTags(JSONUtil.toJsonStr(tags));
-        }
-        // 参数校验
-        problemService.validProblem(Problem, false);
-        User loginUser = userService.getLoginUser(request);
-        Long id = problemEditRequest.getId();
-        // 判断是否存在
-        Problem oldProblem = problemService.getById(id);
-        ThrowUtils.throwIf(oldProblem == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可编辑
-        if (!oldProblem.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        boolean result = problemService.updateById(Problem);
-        return ResultUtils.success(result);
     }
 }

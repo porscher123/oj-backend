@@ -1,5 +1,6 @@
 package com.wxc.oj.model.po;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
@@ -13,7 +14,7 @@ import lombok.Data;
 @Data
 public class Contest implements Serializable {
 
-    @TableId
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String title;
