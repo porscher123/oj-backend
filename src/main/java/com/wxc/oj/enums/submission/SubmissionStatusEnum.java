@@ -4,7 +4,7 @@ package com.wxc.oj.enums.submission;
  * @Description 提交评测结果的状态码
  * @Since 2021/1/1
  */
-public enum SubmissionStatus {
+public enum SubmissionStatusEnum {
     // 提交失败,
 
 
@@ -24,7 +24,7 @@ public enum SubmissionStatus {
     private final Integer status;
     private final String description;
 
-    SubmissionStatus(Integer status, String description) {
+    SubmissionStatusEnum(Integer status, String description) {
         this.status = status;
         this.description = description;
     }
@@ -38,7 +38,7 @@ public enum SubmissionStatus {
     }
 
     public static String getDescriptionByStatus(int status) {
-        for (SubmissionStatus judge : SubmissionStatus.values()) {
+        for (SubmissionStatusEnum judge : SubmissionStatusEnum.values()) {
             if (judge.getStatus() == status) {
                 return judge.getDescription();
             }

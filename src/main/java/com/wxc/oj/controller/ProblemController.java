@@ -22,6 +22,7 @@ import com.wxc.oj.service.*;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,9 +62,7 @@ public class ProblemController {
     @Resource
     TagService tagService;
 
-    public static final String PROBLEM_KEY = "problem:";
-    @Resource
-    StringRedisTemplate stringRedisTemplate;
+
 
     private static final String UPLOAD_ROOT = "src/main/resources/data";
 
@@ -143,6 +142,27 @@ public class ProblemController {
         boolean save = problemService.save(problem);
         return ResultUtils.success(problem.getId());
     }
+
+    /**
+     * 添加题目（基本信息，不包含样例）
+     * @param request
+     * @return
+     */
+    @PostMapping("add")
+    @AuthCheck(mustRole = ADMIN)
+    public BaseResponse<Boolean> addProblem(@RequestBody
+                                                ProblemAddRequest request) {
+        Boolean b = problemService.addProblem(request);
+        return ResultUtils.success(b);
+    }
+
+
+
+    @GetMapping("get/notPublic")
+    public BaseResponse getAllNotPublicProblem() {
+        List<ProblemVO> allProblemNotPublic = problemService.getAllProblemNotPublic();
+        return ResultUtils.success(allProblemNotPublic);
+    }
 //    /**
 //     * 创建比赛使用题目
 //     */
@@ -213,25 +233,12 @@ public class ProblemController {
      * 根据 id 获取题目
      * GET方法
      * 使用redis 缓存
+     * 更新题目后，可以使用的还是Redis缓存
      */
-    @GetMapping("/get/vo/{id}")
-    public BaseResponse<ProblemVO> getProblemVOById(@PathVariable Long id) {
-        if (id <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        if (stringRedisTemplate.hasKey(PROBLEM_KEY + id)) {
-            String s = stringRedisTemplate.opsForValue().get(PROBLEM_KEY + id);
-            ProblemVO problemVO = JSONUtil.toBean(s, ProblemVO.class);
-            return ResultUtils.success(problemVO);
-        }
-        Problem problem = problemService.getById(id);
-        ProblemVO problemVOWithContent = problemService.getProblemVOWithContent(problem);
-        stringRedisTemplate.opsForValue().set(PROBLEM_KEY + id, JSONUtil.toJsonStr(problemVOWithContent));
-        if (problem == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-
-        return ResultUtils.success(problemVOWithContent);
+    @GetMapping("/get/vo")
+    public BaseResponse<ProblemVO> getProblemVOById(@RequestParam Long id) {
+        ProblemVO problemVOById = problemService.getProblemVOById(id);
+        return ResultUtils.success(problemVOById);
     }
 
     @GetMapping("/get/check")

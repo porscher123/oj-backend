@@ -3,7 +3,7 @@ spring:
         addresses: 123.249.0.179
         username: admin
         password: wxc123...
-        virtual-host: /oj
+        virtual-host: /
     data:
       redis:
           host: 123.249.0.179

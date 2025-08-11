@@ -8,6 +8,7 @@ import com.wxc.oj.common.BaseResponse;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.common.PageRequest;
 import com.wxc.oj.common.ResultUtils;
+import com.wxc.oj.enums.contest.ContestStatusEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.model.dto.contest.*;
 import com.wxc.oj.model.po.Contest;
@@ -196,9 +197,11 @@ public class ContestController {
 
 
     @GetMapping("problem/get")
-    public BaseResponse<ContestProblemVO> getContestProblemByIndex(@RequestParam Long contestId,
-                                                            @RequestParam Integer index) {
-        ContestProblemVO contestProblemVO = contestService.getContestProblemByIndex(contestId, index);
+    public BaseResponse<ContestProblemVO> getContestProblemByIndex(
+                                    @RequestParam Long contestId,
+                                    @RequestParam Integer index) {
+        ContestProblemVO contestProblemVO
+                = contestService.getContestProblemByIndex(contestId, index);
         return ResultUtils.success(contestProblemVO);
     }
 
@@ -262,18 +265,15 @@ public class ContestController {
      *  1. 只有在比赛进行中才能提交代码
      */
     @PostMapping("problem/submit")
-    public BaseResponse<ContestSubmissionVO> submit(@RequestBody SubmitInContestDTO submitInContestDTO) {
-//        Long contestId = submitInContestDTO.getContestId();
-//        Contest contest = contestService.getById(contestId);
-//        if (contest.getStatus() != ContestEnum.RUNNING.getCode()) {
-//            throw new BusinessException(ErrorCode.OPERATION_ERROR);
-//        }
+    public BaseResponse<ContestSubmissionVO> submit(
+                                    @RequestBody SubmitInContestDTO submitInContestDTO) {
         Long contestId = submitInContestDTO.getContestId();
         Contest contest = contestService.getById(contestId);
-        if (contest.getStatus() != 1) {
+        if (contest.getStatus() != ContestStatusEnum.RUNNING.getCode()) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR,  "不能提交");
         }
-        ContestSubmissionVO contestSubmissionVO = contestSubmissionService.submitCode(submitInContestDTO);
+        ContestSubmissionVO contestSubmissionVO
+                = contestSubmissionService.submitCode(submitInContestDTO);
         return ResultUtils.success(contestSubmissionVO);
     }
 

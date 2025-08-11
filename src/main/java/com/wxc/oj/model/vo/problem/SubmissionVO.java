@@ -1,9 +1,8 @@
-package com.wxc.oj.model.vo;
+package com.wxc.oj.model.vo.problem;
 
 import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
-import com.wxc.oj.enums.submission.SubmissionStatus;
 import com.wxc.oj.model.po.Submission;
 import com.wxc.oj.model.submission.SubmissionResult;
 import lombok.Data;

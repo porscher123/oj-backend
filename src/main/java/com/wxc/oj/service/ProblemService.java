@@ -3,10 +3,12 @@ package com.wxc.oj.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.wxc.oj.model.dto.problem.ProblemAddRequest;
 import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.po.Problem;
 import com.wxc.oj.model.vo.ProblemVO;
+import com.wxc.oj.model.vo.problem.ProblemStatisticsVO;
 
 import java.util.List;
 
@@ -16,6 +18,8 @@ import java.util.List;
 * @createDate 2024-02-28 14:24:47
 */
 public interface ProblemService extends IService<Problem> {
+    ProblemVO getProblemVOById(Long problemId);
+
     /**
      * 校验
      *
@@ -41,6 +45,9 @@ public interface ProblemService extends IService<Problem> {
      * @return
      */
     ProblemVO getProblemVOWithContent(Problem post);
+
+    List<ProblemVO> getAllProblemNotPublic();
+
     ProblemVO getProblemVOWithoutContent(Problem post);
 
     List<ProblemVO> getProblemVOListByProblemList(List<Problem> problemList);
@@ -58,4 +65,7 @@ public interface ProblemService extends IService<Problem> {
 
 
     ProblemVO editProblem(ProblemEditRequest request);
+
+
+    Boolean addProblem(ProblemAddRequest request);
 }

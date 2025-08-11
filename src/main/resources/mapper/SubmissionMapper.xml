@@ -14,11 +14,29 @@
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="isDeleted" column="is_deleted" jdbcType="TINYINT"/>
+            <result property="status" column="status" jdbcType="INTEGER"/>
+            <result property="statusDescription" column="status_description" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,user_id,problem_id,
         source_code,submission_result,
-        language, create_time,update_time,is_deleted
+        language, create_time,update_time,is_deleted,status,statusDescription
     </sql>
+
+    <select id="getStatusDistribution"
+            resultType="com.wxc.oj.model.vo.problem.SubmissionStatusCount">
+        SELECT
+        status_description AS status,
+        COUNT(*) AS count
+        FROM
+        submission
+        WHERE
+        is_deleted = 0
+        AND problem_id = #{problemId}  <!-- 添加题目ID筛选 -->
+        GROUP BY
+        status_description
+        ORDER BY
+        count DESC
+    </select>
 </mapper>

@@ -8,7 +8,7 @@ import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.LanguageConfigs;
 import com.wxc.oj.enums.JudgeResultEnum;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
-import com.wxc.oj.enums.submission.SubmissionStatus;
+import com.wxc.oj.enums.submission.SubmissionStatusEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.judger.contest.service.JudgeService;
 import com.wxc.oj.judger.model.TestCase;
@@ -69,7 +69,8 @@ public class JudgeServiceImpl implements JudgeService {
     /**
      * 时间限制10s
      */
-    public static final Long CPU_LIMIT = 2_000_000_000L;
+    public static final Long CPU_LIMIT = 1_000_000_000L;
+    public static final Long COMPILE_CPU_LIMIT = 1_000_000_000L;
     /**
      * 内存限制512MB
      */
@@ -108,7 +109,7 @@ public class JudgeServiceImpl implements JudgeService {
 
     private boolean changeStatus(ContestSubmission submissionUpd,
                                  SubmissionResult submissionResult,
-                                 SubmissionStatus statusUpd) {
+                                 SubmissionStatusEnum statusUpd) {
         submissionResult.setStatus(statusUpd.getStatus());
         submissionResult.setStatusDescription(statusUpd.getDescription());
         submissionUpd.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
@@ -133,7 +134,7 @@ public class JudgeServiceImpl implements JudgeService {
         String sourceCode = submission.getSourceCode();
 
         SubmissionResult submissionResult = new SubmissionResult();
-        this.changeStatus(submission, submissionResult, SubmissionStatus.COMPILING);
+        this.changeStatus(submission, submissionResult, SubmissionStatusEnum.COMPILING);
 
 
 //        String exeId = compileCppFile(sourceCode);
@@ -148,7 +149,7 @@ public class JudgeServiceImpl implements JudgeService {
             submission.setTotalTime(0L);
             submissionResult.setScore(0);
             submission.setMemoryUsed(0L);
-            boolean b = this.changeStatus(submission, submissionResult, SubmissionStatus.COMPILE_ERROR);
+            boolean b = this.changeStatus(submission, submissionResult, SubmissionStatusEnum.COMPILE_ERROR);
             if (!b) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "submission更新失败");
             }
@@ -157,7 +158,7 @@ public class JudgeServiceImpl implements JudgeService {
         Map<String, String> fileIds = sandBoxResponse.getFileIds();
         String exeId = fileIds.get("main");
         // 编译成功，修改状态为JUDGING
-        this.changeStatus(submission, submissionResult, SubmissionStatus.JUDGING);
+        this.changeStatus(submission, submissionResult, SubmissionStatusEnum.JUDGING);
 
         List<JudgeCaseResult> judgeCaseResults = new ArrayList<>();
         // 读取判题配置
@@ -296,14 +297,14 @@ public class JudgeServiceImpl implements JudgeService {
         // 判题结束后, 修改数据库中的submission的信息
         submission.setId(submissionId);
         if (totalScore == 100) {
-            this.changeStatus(submission, submissionResult, SubmissionStatus.ACCEPTED);
+            this.changeStatus(submission, submissionResult, SubmissionStatusEnum.ACCEPTED);
         } else {
             for (JudgeCaseResult judgeCaseResult : judgeCaseResults) {
                 if (judgeCaseResult.getJudgeResult().equals(JudgeResultEnum.TIME_LIMIT_EXCEEDED.getValue())) {
-                    this.changeStatus(submission, submissionResult, SubmissionStatus.TIME_LIMIT_EXCEEDED);
+                    this.changeStatus(submission, submissionResult, SubmissionStatusEnum.TIME_LIMIT_EXCEEDED);
                     break;
                 } else if (judgeCaseResult.getJudgeResult().equals(JudgeResultEnum.WRONG_ANSWER.getValue())) {
-                    this.changeStatus(submission, submissionResult, SubmissionStatus.WRONG_ANSWER);
+                    this.changeStatus(submission, submissionResult, SubmissionStatusEnum.WRONG_ANSWER);
                     break;
                 }
             }
@@ -466,7 +467,7 @@ public class JudgeServiceImpl implements JudgeService {
         files.add(new JSONObject().set("name","stderr").set("max", 64 * 1024 * 1024));
         cmd.setFiles(files);
         // limit
-        cmd.setCpuLimit(CPU_LIMIT);
+        cmd.setCpuLimit(COMPILE_CPU_LIMIT);
         cmd.setMemoryLimit(MEMORY_LIMIT);
         cmd.setProcLimit(PROC_LIMIT);
         // copyOut

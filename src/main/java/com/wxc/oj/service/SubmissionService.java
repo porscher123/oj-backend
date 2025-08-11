@@ -1,13 +1,12 @@
 package com.wxc.oj.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wxc.oj.model.dto.submission.SubmissionAddRequest;
 import com.wxc.oj.model.dto.submission.SubmissionQueryDTO;
 import com.wxc.oj.model.po.Submission;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.wxc.oj.model.po.User;
-import com.wxc.oj.model.vo.SubmissionVO;
+import com.wxc.oj.model.vo.problem.ProblemStatisticsVO;
+import com.wxc.oj.model.vo.problem.SubmissionVO;
 
 /**
 * @author 王新超
@@ -17,9 +16,12 @@ import com.wxc.oj.model.vo.SubmissionVO;
 public interface SubmissionService extends IService<Submission> {
 
 
-    SubmissionVO submitCode(SubmissionAddRequest submissionAddRequest, User loginUser);
+    ProblemStatisticsVO getProblemStatisticsVO(Long problemId);
 
-    LambdaQueryWrapper<Submission> getQueryWrapper(SubmissionQueryDTO submissionQueryDTO);
+    Page<SubmissionVO> listByPage(SubmissionQueryDTO submissionQueryDTO);
+
+    SubmissionVO submitCode(SubmissionAddRequest submissionAddRequest);
+
 
 
     SubmissionVO submissionToVO(Submission submission);

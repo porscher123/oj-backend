@@ -54,9 +54,7 @@ public class LoginProtectInterceptor implements HandlerInterceptor {
         if (HttpMethod.OPTIONS.toString().equals(request.getMethod())) {
             return true;
         }
-//        String token = request.getHeader("token");
         String token1 = request.getHeader("Authorization");
-        log.info("token = " + token1);
         if (token1 == null || !token1.startsWith(BEARER_PREFIX)) {
             BaseResponse result = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR);
             ObjectMapper objectMapper = new ObjectMapper();
@@ -64,30 +62,16 @@ public class LoginProtectInterceptor implements HandlerInterceptor {
             response.getWriter().print(json);
             return false;
         }
-        log.info("token = " + token1);
-
         String token = token1.substring(7);
-        log.info("token = " + token);
-        // token为空, 肯定是无效的
         boolean valid = jwtUtils.isTokenValid(token);
-        // 有效
         if (valid) {
-            log.info("token有效");
-//            UserVO userVO = JwtUtils.parseUserVOFromToken(token);
-//            log.info("uservo = " + userVO);
-//            Long userId = userVO.getId();
-//            log.info("userId = " + userId);
             Long userId = JwtUtils.getUserIdFromToken(token);
             String s = stringRedisTemplate.opsForValue().get("user:" + userId);
             User user = JSONUtil.toBean(s, User.class);
             if (s != null && user != null) {
-                log.info("token有效2");
-
                 return true;
             }
         }
-        log.info("token无效");
-        // token无效, 设置响应体内容
         BaseResponse result = ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR);
         ObjectMapper objectMapper = new ObjectMapper();
         String json = objectMapper.writeValueAsString(result);

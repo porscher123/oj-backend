@@ -33,7 +33,7 @@ public class ContestVO implements Serializable {
 
     private Integer status;
 
-    private Integer isPublic;
+    private Boolean isPublic;
 
     /**
      * 题目列表

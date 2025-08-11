@@ -13,7 +13,6 @@ import java.util.Date;
  * submission的ID，用户，语言，评测结果（ACCEPTED, WRONG ANSWER...）
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
 public class SubmissionQueryDTO extends PageRequest implements Serializable {
 
     private Long problemId;
@@ -22,7 +21,7 @@ public class SubmissionQueryDTO extends PageRequest implements Serializable {
 
     private String language;
 
-    private String JudgeResult;
+    private String judgeResult;
 
     private static final long serialVersionUID = 1L;
 }

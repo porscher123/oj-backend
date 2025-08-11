@@ -25,7 +25,9 @@ public class Submission implements Serializable {
      * JSON字符串
      */
     private String submissionResult;
+    private Integer status;
 
+    private String statusDescription;
 
     private String language;
 

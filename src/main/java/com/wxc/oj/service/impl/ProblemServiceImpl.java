@@ -8,11 +8,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.constant.CommonConstant;
-import com.wxc.oj.constant.Level;
 import com.wxc.oj.enums.problem.ProblemLevel;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.exception.ThrowUtils;
 import com.wxc.oj.mapper.ProblemMapper;
+import com.wxc.oj.model.dto.problem.ProblemAddRequest;
 import com.wxc.oj.model.dto.problem.ProblemEditRequest;
 import com.wxc.oj.model.dto.problem.ProblemQueryRequest;
 import com.wxc.oj.model.dto.problem.ProblemTag;
@@ -30,6 +30,7 @@ import com.wxc.oj.utils.SqlUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -57,19 +58,32 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     ProblemTagService problemTagService;
 
 
+    private static final String PROBLEM_KEY = "problem:";
+    @Resource
+    StringRedisTemplate stringRedisTemplate;
 
 
 
-
-
-
-    private boolean checkLevel(String level) {
-        Set<String> levels = new HashSet<>();
-        levels.add(Level.EASY);
-        levels.add(Level.MEDIUM);
-        levels.add(Level.HARD);
-        return levels.contains(level);
+    @Override
+    public ProblemVO getProblemVOById(Long problemId) {
+        if (problemId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        if (stringRedisTemplate.hasKey(PROBLEM_KEY + problemId)) {
+            String s = stringRedisTemplate.opsForValue().get(PROBLEM_KEY + problemId);
+            ProblemVO problemVO = JSONUtil.toBean(s, ProblemVO.class);
+            return problemVO;
+        }
+        Problem problem = this.getById(problemId);
+        ProblemVO problemVOWithContent = this.getProblemVOWithContent(problem);
+        stringRedisTemplate.opsForValue().set(PROBLEM_KEY + problemId, JSONUtil.toJsonStr(problemVOWithContent));
+        if (problem == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        return problemVOWithContent;
     }
+
+
 
     /**
      * 校验题目是否合法
@@ -161,7 +175,20 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
 
 
 
-
+    @Override
+    public List<ProblemVO> getAllProblemNotPublic() {
+        LambdaQueryWrapper<Problem> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Problem::getIsPublic, 0);
+        List<Problem> problemList = this.list(queryWrapper);
+        List<ProblemVO> problemVOList = new ArrayList<>();
+        for (Problem problem : problemList) {
+            ProblemVO problemVO = new ProblemVO();
+            problemVO.setId(problem.getId());
+            problemVO.setTitle(problem.getTitle());
+            problemVOList.add(problemVO);
+        }
+        return problemVOList;
+    }
 
 
     /**
@@ -184,19 +211,19 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             user = userService.getById(userId);
         }
         UserVO userVO = userService.getUserVO(user);
-
-
-        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
-
         LambdaQueryWrapper<ProblemTag> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ProblemTag::getProblemId, problem.getId());
+
         List<Tag> tags = new ArrayList<>();
         List<ProblemTag> list = problemTagService.list(queryWrapper);
-        if (list  != null && !list.isEmpty()) {
+        if (CollUtil.isNotEmpty(list)) {
             tags = tagService.listTagsByProblemId(problem.getId());
         }
+        problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
         problemVO.setTags(tags);
-        problemVO.setUserVO(userVO);
+        problemVO.setPublisherId(userVO.getId());
+        problemVO.setPublisherName(userVO.getUserName());
+        problemVO.setIsPublic(problem.getIsPublic() == 1? true:  false);
 
         return problemVO;
     }
@@ -227,7 +254,9 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             tags = tagService.listTagsByProblemId(problem.getId());
         }
         problemVO.setTags(tags);
-        problemVO.setUserVO(userVO);
+        problemVO.setPublisherId(userVO.getId());
+        problemVO.setPublisherName(userVO.getUserName());
+        problemVO.setIsPublic(problem.getIsPublic() == 1 ?  true : false);
         problemVO.setJudgeConfig(JSONUtil.toBean(problem.getJudgeConfig(), JudgeConfig.class));
         return problemVO;
     }
@@ -274,38 +303,46 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
     }
 
 
+    /**
+     * 更新题目后删除Redis中的数据
+     * @param request
+     * @return
+     */
     @Override
     public ProblemVO editProblem(ProblemEditRequest request) {
         Long id = request.getId();
         Problem problem = new Problem();
         copyProperties(request, problem);
         problem.setId(id);
-        Long userId = request.getUserId();
-        problem.setUserId(userId);
         Boolean isPublic = request.getIsPublic();
+        Long userId = request.getUserId();
+        Integer level = request.getLevel();
+        this.checkLevel(level);
+        JudgeConfig judgeConfig = request.getJudgeConfig();
+
+
+        problem.setUserId(userId);
         if (isPublic) {
             problem.setIsPublic(1);
         } else {
             problem.setIsPublic(0);
         }
-
-
-        Integer level = request.getLevel();
-        this.checkLevel(level);
         problem.setLevel(level);
 
-        JudgeConfig judgeConfig = request.getJudgeConfig();
         if (judgeConfig != null) {
             problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
         }
 
         this.validProblem(problem, true);
 
-
-        problem.setSubmittedNum(0);
-        problem.setAcceptedNum(0);
-
         boolean result = this.updateById(problem);
+        // 添加失败
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+
+        LambdaQueryWrapper<ProblemTag> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProblemTag::getProblemId, problem.getId());
+        problemTagService.remove(queryWrapper);
         int tagSize = tagService.list().size();
         List<Integer> tags1 = request.getTags();
         Set<Integer> set = new HashSet<>(tags1);
@@ -318,22 +355,46 @@ public class ProblemServiceImpl extends ServiceImpl<ProblemMapper, Problem> impl
             ProblemTag problemTag = new ProblemTag();
             problemTag.setProblemId(problem.getId());
             problemTag.setTagId(tagId);
-            LambdaQueryWrapper<ProblemTag> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(ProblemTag::getProblemId, problem.getId()).
-                    eq(ProblemTag::getTagId, tagId);
-            ProblemTag r = problemTagService.getOne(queryWrapper);
-            if (r == null) {
-                boolean save = problemTagService.save(problemTag);
-                if (!save) {
-                    throw new BusinessException(ErrorCode.OPERATION_ERROR);
-                }
+            boolean save = problemTagService.save(problemTag);
+            if (!save) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR);
             }
 
+
         }
-        // 添加失败
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        stringRedisTemplate.delete(PROBLEM_KEY + problem.getId());
         ProblemVO problemVOWithContent = this.getProblemVOWithContent(problem);
         return problemVOWithContent;
+    }
+
+
+
+
+
+    @Override
+    public Boolean addProblem(ProblemAddRequest request) {
+        List<Integer> tags = request.getTags();
+        JudgeConfig judgeConfig = request.getJudgeConfig();
+        Long publisherId = request.getPublisherId();
+        Boolean isPublic = request.getIsPublic();
+        Problem problem = new Problem();
+        copyProperties(request, problem);
+        problem.setIsPublic(isPublic ? 1 : 0);
+        problem.setUserId(publisherId);
+        problem.setJudgeConfig(JSONUtil.toJsonStr(judgeConfig));
+        boolean save = this.save(problem);
+        Long problemId = problem.getId();
+        for (Integer tag : tags) {
+            ProblemTag problemTag = new ProblemTag();
+            problemTag.setProblemId(problemId);
+            problemTag.setTagId(tag);
+            problemTagService.save(problemTag);
+        }
+        if (!save) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "题目创建失败");
+        }
+        return true;
     }
 }
 

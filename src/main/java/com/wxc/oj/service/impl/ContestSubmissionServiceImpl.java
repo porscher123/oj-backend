@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wxc.oj.common.ErrorCode;
 import com.wxc.oj.enums.submission.SubmissionLanguageEnum;
-import com.wxc.oj.enums.submission.SubmissionStatus;
+import com.wxc.oj.enums.submission.SubmissionStatusEnum;
 import com.wxc.oj.exception.BusinessException;
 import com.wxc.oj.mapper.ContestSubmissionMapper;
 import com.wxc.oj.model.dto.contest.ContestSubmissionListDTO;
@@ -108,13 +108,13 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
         // 初始化判题状态为 NOT_SUBMITTED
 //        submission.setStatus(SubmissionStatus.SUBMITTED.getStatus());
 
-        submissionResult.setStatus(SubmissionStatus.SUBMITTED.getStatus());
-        submissionResult.setStatusDescription(SubmissionStatus.SUBMITTED.getDescription());
+        submissionResult.setStatus(SubmissionStatusEnum.SUBMITTED.getStatus());
+        submissionResult.setStatusDescription(SubmissionStatusEnum.SUBMITTED.getDescription());
         submissionResult.setScore(0);
 
         submission.setSubmissionResult(JSONUtil.toJsonStr(submissionResult));
-        submission.setStatus(SubmissionStatus.SUBMITTED.getStatus());
-        submission.setStatusDescription(SubmissionStatus.SUBMITTED.getDescription());
+        submission.setStatus(SubmissionStatusEnum.SUBMITTED.getStatus());
+        submission.setStatusDescription(SubmissionStatusEnum.SUBMITTED.getDescription());
         submission.setScore(0);
 
         // 初始submission保存到数据库
@@ -138,8 +138,8 @@ public class ContestSubmissionServiceImpl extends ServiceImpl<ContestSubmissionM
             // 发送消息到直连交换机, 指定路由键
             rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, submissionMessage);
 //            submission1.setStatus(SubmissionStatus.PENDING.getStatus());
-            submissionResult.setStatus(SubmissionStatus.PENDING.getStatus());
-            submissionResult.setStatusDescription(SubmissionStatus.PENDING.getDescription());
+            submissionResult.setStatus(SubmissionStatusEnum.PENDING.getStatus());
+            submissionResult.setStatusDescription(SubmissionStatusEnum.PENDING.getDescription());
         }
         this.updateById(submission1);
         // 异步化了, 所以返回的还是刚开始的初始的submission

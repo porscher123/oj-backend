@@ -2,6 +2,10 @@ package com.wxc.oj.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.wxc.oj.model.po.Submission;
+import com.wxc.oj.model.vo.problem.SubmissionStatusCount;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
 * @author 王新超
@@ -10,7 +14,7 @@ import com.wxc.oj.model.po.Submission;
 * @Entity com.wxc.oj.pojo.Submission
 */
 public interface SubmissionMapper extends BaseMapper<Submission> {
-
+    List<SubmissionStatusCount> getStatusDistribution(@Param("problemId") Long problemId);
 }
 
 

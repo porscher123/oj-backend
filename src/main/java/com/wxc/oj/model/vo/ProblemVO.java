@@ -34,9 +34,6 @@ public class ProblemVO implements Serializable {
 
     private Integer acceptedNum;
 
-    private Integer thumbNum;
-
-    private Integer favorNum;
 
     /**
      * 测试配置也要返回给前端用户
@@ -51,12 +48,13 @@ public class ProblemVO implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd",timezone="GMT+8")
     private Date createTime;
 
-    private Date updateTime;
 
-    private Integer isDelete;
 
-    private UserVO userVO;
-    private Integer isPublic;
+    private Long publisherId;
+
+    private String publisherName;
+
+    private Boolean isPublic;
 
     private static final long serialVersionUID = 1L;
 }

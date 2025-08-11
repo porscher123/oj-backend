@@ -82,23 +82,23 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
      */
     private static final Integer MAX_DELAY_TIME = 30_240;
 
-    private void validateContestBaseInfo(ContestBaseUpdateRequest request) {
-        Date startTime = request.getStartTime();
-        if (startTime != null) {
-            Date currentDate = new Date();
-            // 如果比赛时间早于当前时间或者比赛准备时间大于21天，则抛出异常
-            if (startTime.getTime() < currentDate.getTime()
-                    || startTime.getTime() - currentDate.getTime() > MAX_DELAY_TIME * 60 * 1000) {
-                throw new BusinessException(400, "比赛时间不能早于当前时间");
-            }
-            Integer duration = request.getDuration();
-            // 如果比赛持续时间小于等于0或者持续时间大于等于21天，则抛出异常
-            if (duration <= 0 || duration >= MAX_DELAY_TIME) {
-                throw new BusinessException(400, "比赛持续时间不能小于0或者大于21天");
-            }
-        }
-
-    }
+//    private void validateContestBaseInfo(ContestBaseUpdateRequest request) {
+//        Date startTime = request.getStartTime();
+//        if (startTime != null) {
+//            Date currentDate = new Date();
+//            // 如果比赛时间早于当前时间或者比赛准备时间大于21天，则抛出异常
+//            if (startTime.getTime() < currentDate.getTime()
+//                    || startTime.getTime() - currentDate.getTime() > MAX_DELAY_TIME * 60 * 1000) {
+//                throw new BusinessException(400, "比赛时间不能早于当前时间");
+//            }
+//            Integer duration = request.getDuration();
+//            // 如果比赛持续时间小于等于0或者持续时间大于等于21天，则抛出异常
+//            if (duration <= 0 || duration >= MAX_DELAY_TIME) {
+//                throw new BusinessException(400, "比赛持续时间不能小于0或者大于21天");
+//            }
+//        }
+//
+//    }
 
     /**
      * 更新比赛的基本信息
@@ -108,16 +108,12 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
      */
     @Override
     public ContestVO updateContestBaseInfo(ContestBaseUpdateRequest request) {
-        validateContestBaseInfo(request);
+//        validateContestBaseInfo(request);
         Long contestId = request.getContestId();
         Contest contest = this.getById(contestId);
         Integer status = contest.getStatus();
         if (status == ContestStatusEnum.ENDED.getCode()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "比赛已结束，不能修改");
-        }
-        Date startTime = request.getStartTime();
-        if (startTime != null) {
-
         }
         String title = request.getTitle();
         String description = request.getDescription();
@@ -372,18 +368,18 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
     @Override
     public ContestVO getContestVOWithoutProblemListByContest(Contest contest) {
         ContestVO contestVO = new ContestVO();
-        copyProperties(contest, contestVO);
         Integer playerCount = this.getContestPlayerCount(contest.getId());
-        contestVO.setPlayerCount(playerCount);
-        log.info("getHostId"+contest.getHostId());
         Long hostId = contest.getHostId();
         User host = userService.getById(hostId);
         if (host == null) {
             throw new BusinessException(400, "获取比赛发布者失败信息失败");
         }
+
+        copyProperties(contest, contestVO);
+        contestVO.setIsPublic(contest.getIsPublic() == 0 ? false : true);
+        contestVO.setPlayerCount(playerCount);
         contestVO.setHostName(host.getUserName());
         contestVO.setHostId(contest.getHostId());
-        // 以秒为单位返回比赛持续时间
         contestVO.setDuration(Integer.valueOf(contest.getDuration() / 1000/ 60));
         contestVO.setEndTime(new Date(contest.getStartTime().getTime() + contest.getDuration()));
         return contestVO;
@@ -397,14 +393,16 @@ public class ContestServiceImpl extends ServiceImpl<ContestMapper, Contest>
     @Override
     public ContestVO getContestVOWithProblemListByContest(Contest contest) {
         ContestVO contestVO = new ContestVO();
-        copyProperties(contest, contestVO);
         Long contestId = contest.getId();
         Integer playerCount = this.getContestPlayerCount(contest.getId());
+        List<ProblemVO> problemVOList = this.getProblemVOListByContestId(contestId);
+
+
+        copyProperties(contest, contestVO);
+        contestVO.setIsPublic(contest.getIsPublic() == 0 ? false : true);
         contestVO.setPlayerCount(playerCount);
         contestVO.setHostName(userService.getById(contest.getHostId()).getUserName());
-        List<ProblemVO> problemVOList = this.getProblemVOListByContestId(contestId);
         contestVO.setProblemVOList(problemVOList);
-        // 以秒为单位返回比赛持续时间
         contestVO.setDuration(Integer.valueOf(contest.getDuration() / 1000 / 60));
         contestVO.setEndTime(new Date(contest.getStartTime().getTime() + contest.getDuration()));
 

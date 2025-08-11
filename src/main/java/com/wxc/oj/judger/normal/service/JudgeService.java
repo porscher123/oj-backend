@@ -1,6 +1,8 @@
 package com.wxc.oj.judger.normal.service;
 
 import com.wxc.oj.model.judge.JudgeCaseResult;
+import com.wxc.oj.model.po.Problem;
+import com.wxc.oj.model.po.Submission;
 import com.wxc.oj.sandbox.dto.SandBoxResponse;
 import com.wxc.oj.sandbox.model.LanguageConfig;
 
@@ -11,6 +13,7 @@ public interface JudgeService {
     void doJudge(Long submissionId) throws IOException;
 
 
+    void pythonJudge(Submission submission, Problem problem) throws IOException;
 
     SandBoxResponse compileCode(String sourceCode, LanguageConfig languageConfig) throws IOException;
 
